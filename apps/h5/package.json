@@ -1,0 +1,12 @@
+{
+  "name": "h5",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo dev h5 && echo '请在本地使用 HBuilderX 或 uniapp CLI 运行'",
+    "build": "echo build h5"
+  },
+  "dependencies": {
+    "vue": "^3.4.0"
+  }
+}
