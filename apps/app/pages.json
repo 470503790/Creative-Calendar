@@ -1,6 +1,0 @@
-{
-  "pages": [
-    { "path": "src/pages/index/index", "style": { "navigationBarTitleText": "Creative Calendar" } }
-  ],
-  "easycom": { "autoscan": true }
-}
