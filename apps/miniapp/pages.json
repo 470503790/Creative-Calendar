@@ -1,0 +1,19 @@
+{
+  "pages": [
+    { "path": "src/pages/index/index", "style": { "navigationBarTitleText": "Creative Calendar" } },
+    { "path": "src/pages/templates/index", "style": { "navigationBarTitleText": "模板库" } },
+    { "path": "src/pages/templates/detail", "style": { "navigationBarTitleText": "模板详情" } },
+    { "path": "src/pages/editor/index", "style": { "navigationBarTitleText": "编辑器" } }
+  ],
+  "tabBar": {
+    "color": "#666666",
+    "selectedColor": "#7C6CFF",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      { "pagePath": "src/pages/index/index", "text": "首页" },
+      { "pagePath": "src/pages/templates/index", "text": "模板库" }
+    ]
+  },
+  "easycom": { "autoscan": true }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "Creative Calendar (Mock)",
+  "appid": "",
+  "description": "Front-end first (uni-app) with mock data",
+  "versionName": "0.1.0",
+  "versionCode": "1",
+  "mp-weixin": {
+    "appid": ""
+  }
+}
