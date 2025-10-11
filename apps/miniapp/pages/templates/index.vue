@@ -3,7 +3,6 @@
     <view class="search">
       <input placeholder="搜索模板关键字…" v-model="q" @confirm="doSearch" />
     </view>
-
     <view class="grid">
       <view v-for="t in list" :key="t.id" class="tile" @click="goDetail(t.id)">
         <image class="cover" :src="t.coverUrl" mode="aspectFill" />
@@ -15,23 +14,15 @@
     </view>
   </view>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { getTemplates } from '../../api'
-const q = ref('')
-const raw = ref<any[]>([])
-const list = computed(() => {
-  if(!q.value) return raw.value
-  return raw.value.filter(t => t.title.includes(q.value) || t.tags.some((x:string)=>x.includes(q.value)))
-})
-onMounted(async () => {
-  raw.value = await getTemplates()
-})
+import { getTemplates } from '../../utils/mock-api'
+const q = ref(''); const raw = ref<any[]>([])
+const list = computed(()=> !q.value ? raw.value : raw.value.filter(t => t.title.includes(q.value) || t.tags.some((x:string)=>x.includes(q.value))))
+onMounted(async ()=>{ raw.value = await getTemplates() })
 function doSearch(){}
-function goDetail(id:string){ uni.navigateTo({ url: `/src/pages/templates/detail?id=${id}` }) }
+function goDetail(id:string){ uni.navigateTo({ url: `/pages/templates/detail?id=${id}` }) }
 </script>
-
 <style>
 .wrap{ padding:24rpx }
 .search input{ background:#fff; border-radius:16rpx; padding:16rpx; box-shadow:0 6rpx 18rpx rgba(0,0,0,.06) }

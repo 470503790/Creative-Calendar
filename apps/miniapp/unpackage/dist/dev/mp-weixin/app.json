@@ -1,0 +1,25 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/templates/index",
+    "pages/templates/detail",
+    "pages/editor/index"
+  ],
+  "tabBar": {
+    "color": "#666666",
+    "selectedColor": "#7C6CFF",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页"
+      },
+      {
+        "pagePath": "pages/templates/index",
+        "text": "模板库"
+      }
+    ]
+  },
+  "usingComponents": {}
+}

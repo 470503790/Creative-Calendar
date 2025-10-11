@@ -1,10 +1,11 @@
 {
-  "name": "Creative Calendar (Mock)",
-  "appid": "",
-  "description": "Front-end first (uni-app) with mock data",
-  "versionName": "0.1.0",
-  "versionCode": "1",
-  "mp-weixin": {
-    "appid": ""
-  }
+    "name" : "Creative Calendar (Standard)",
+    "appid" : "__UNI__F09F7A4",
+    "description" : "uni-app mp-weixin standard structure",
+    "versionName" : "0.1.0",
+    "versionCode" : "1",
+    "mp-weixin" : {
+        "appid" : ""
+    },
+    "vueVersion" : "3"
 }

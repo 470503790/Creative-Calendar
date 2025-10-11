@@ -4,7 +4,6 @@
       <view class="title">Creative Calendar</view>
       <view class="sub">把“日历”做成你的海报 ✨</view>
     </view>
-
     <view class="section">
       <view class="section-title">热门模板</view>
       <scroll-view scroll-x class="row">
@@ -16,22 +15,13 @@
     </view>
   </view>
 </template>
-
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getTemplates } from '../../api'
-
+import { getTemplates } from '../../utils/mock-api'
 const hot = ref<any[]>([])
-
-onMounted(async () => {
-  hot.value = (await getTemplates()).slice(0, 5)
-})
-
-function goDetail(id:string){
-  uni.navigateTo({ url: `/src/pages/templates/detail?id=${id}` })
-}
+onMounted(async () => { hot.value = (await getTemplates()).slice(0, 5) })
+function goDetail(id:string){ uni.navigateTo({ url: `/pages/templates/detail?id=${id}` }) }
 </script>
-
 <style>
 .wrap{ padding:24rpx }
 .hero{ padding:24rpx 0 }

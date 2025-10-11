@@ -1,0 +1,1 @@
+<view class="wrap"><view class="canvas" id="canvas"><view class="ph">这里是画布占位（轻编辑 MVP 待实现）</view></view><view class="toolbar"><button bindtap="{{a}}">加文字</button><button bindtap="{{b}}">加贴纸</button><button bindtap="{{c}}">导出（模拟）</button></view></view>
