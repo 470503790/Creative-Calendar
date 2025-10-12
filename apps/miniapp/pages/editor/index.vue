@@ -58,6 +58,7 @@
             plain
             class="tool"
             :class="{ active: activeToolbarKey === tool.key }"
+            :disabled="tool.key === 'undo' ? !canUndo : tool.key === 'redo' ? !canRedo : false"
             @click="handleToolbarClick(tool.key, tool.label)"
           >
             {{ tool.label }}
@@ -70,6 +71,10 @@
                 <view class="canvas-placeholder">
                   <text class="canvas-title">画布区域占位</text>
                   <text class="canvas-desc">保持等比居中，后续将接入真实渲染</text>
+                  <text class="canvas-info">当前页面：{{ activePage?.name || '未选择' }}</text>
+                  <text class="canvas-info">页面元素数量：{{ layerCount }}</text>
+                  <text v-if="activeLayer" class="canvas-info">选中元素：{{ activeLayer.name }}</text>
+                  <text v-else class="canvas-info">暂无选中元素</text>
                 </view>
               </view>
             </view>
@@ -107,11 +112,36 @@
             <text class="panel-title">{{ rightActiveMeta.label }}</text>
             <text class="panel-desc">{{ rightActiveMeta.description }}</text>
             <view class="form-placeholder">
-              <view class="form-item" v-for="n in 4" :key="n">
-                <text class="form-label">属性字段 {{ n }}</text>
-                <view class="form-control" />
+              <view class="form-item">
+                <text class="form-label">当前页面</text>
+                <text class="form-meta">{{ activePage?.name || '未选择' }}</text>
               </view>
-              <button plain class="mini" @click="handlePropertySubmit">同步到画布</button>
+              <view class="form-item">
+                <text class="form-label">图层数量</text>
+                <text class="form-meta">{{ layerCount }}</text>
+              </view>
+              <view v-if="activeLayer" class="form-item">
+                <text class="form-label">选中元素</text>
+                <text class="form-meta">{{ activeLayer.name }}</text>
+              </view>
+              <view v-if="activeLayer" class="form-item">
+                <text class="form-label">属性快照</text>
+                <text class="form-meta code">{{ activeLayerProps }}</text>
+              </view>
+              <view v-else class="form-empty">暂无选中元素，先从左侧添加素材</view>
+              <view class="form-actions">
+                <button plain class="mini" @click="handlePropertySubmit" :disabled="!activeLayer">
+                  同步到画布
+                </button>
+                <button
+                  plain
+                  class="mini danger"
+                  @click="handleLayerRemove"
+                  :disabled="!activeLayer"
+                >
+                  删除当前元素
+                </button>
+              </view>
             </view>
           </view>
         </scroll-view>
@@ -146,6 +176,14 @@ const isLeftExpanded = computed(() => editor.isLeftExpanded.value)
 const isRightExpanded = computed(() => editor.isRightExpanded.value)
 const zoomLabel = computed(() => editor.zoomLabel.value)
 const activeToolbarKey = computed(() => editor.activeToolbarKey.value)
+const activePage = computed(() => editor.activePage.value)
+const activeLayer = computed(() => editor.activeLayer.value)
+const layerCount = computed(() => editor.layerCount.value)
+const canUndo = computed(() => editor.canUndo.value)
+const canRedo = computed(() => editor.canRedo.value)
+const activeLayerProps = computed(() =>
+  activeLayer.value ? JSON.stringify(activeLayer.value.props) : ''
+)
 
 const canvasStyle = computed(() => {
   const scale = editor.zoom.value / 100
@@ -180,7 +218,12 @@ function resetZoom() {
 }
 
 function handleMaterialClick(id: number) {
-  uni.showToast({ title: `添加素材 ${id}（mock）`, icon: 'none' })
+  const layer = editor.addMaterialLayer(id)
+  if (layer) {
+    uni.showToast({ title: `已添加 ${layer.name}`, icon: 'none' })
+  } else {
+    uni.showToast({ title: '暂无可添加的画布', icon: 'none' })
+  }
 }
 
 function handleAction(type: 'saveDraft' | 'preview' | 'publish') {
@@ -193,12 +236,40 @@ function handleAction(type: 'saveDraft' | 'preview' | 'publish') {
 }
 
 function handleToolbarClick(key: ToolbarKey, label: string) {
+  if (key === 'undo') {
+    const done = editor.undo()
+    uni.showToast({ title: done ? '已撤销一步' : '无法继续撤销', icon: 'none' })
+    return
+  }
+  if (key === 'redo') {
+    const done = editor.redo()
+    uni.showToast({ title: done ? '已重做一步' : '无法继续重做', icon: 'none' })
+    return
+  }
   editor.toggleToolbarAction(key)
   uni.showToast({ title: `${label} 功能占位`, icon: 'none' })
 }
 
 function handlePropertySubmit() {
-  uni.showToast({ title: '属性已同步（mock）', icon: 'none' })
+  const mockPalette = ['#7c6cff', '#f7931a', '#1abc9c']
+  const mockFonts = ['思源黑体', '站酷快乐体', '霞鹜文楷']
+  const updated = editor.updateActiveLayerProps({
+    lastSyncedAt: new Date().toISOString(),
+    themeColor: mockPalette[Math.floor(Math.random() * mockPalette.length)],
+    fontFamily: mockFonts[Math.floor(Math.random() * mockFonts.length)],
+  })
+  uni.showToast({
+    title: updated ? '属性已同步至画布' : '请先选择元素',
+    icon: 'none',
+  })
+}
+
+function handleLayerRemove() {
+  const removed = editor.removeActiveLayer()
+  uni.showToast({
+    title: removed ? '已删除当前元素' : '没有可删除的元素',
+    icon: 'none',
+  })
 }
 </script>
 
@@ -467,7 +538,7 @@ function handlePropertySubmit() {
 .form-item {
   display: flex;
   flex-direction: column;
-  gap: 10rpx;
+  gap: 12rpx;
 }
 
 .form-label {
@@ -475,10 +546,46 @@ function handlePropertySubmit() {
   color: var(--color-text-muted);
 }
 
-.form-control {
-  height: 72rpx;
-  border-radius: var(--radius-md);
+.form-meta {
+  font-size: 24rpx;
+  color: var(--color-text-primary, #333);
+  word-break: break-all;
+}
+
+.form-meta.code {
+  font-family: 'SFMono-Regular', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New',
+    monospace;
+  font-size: 22rpx;
+  color: var(--color-text-muted);
+}
+
+.form-empty {
+  font-size: 22rpx;
+  color: var(--color-text-muted);
   background: rgba(124, 108, 255, 0.08);
+  border-radius: var(--radius-lg);
+  padding: 24rpx;
+}
+
+.form-actions {
+  display: flex;
+  gap: 12rpx;
+  flex-wrap: wrap;
+}
+
+button.danger {
+  color: #d14343;
+  border-color: rgba(209, 67, 67, 0.45);
+}
+
+button.danger[disabled] {
+  color: rgba(209, 67, 67, 0.4);
+  border-color: rgba(209, 67, 67, 0.2);
+}
+
+.canvas-info {
+  font-size: 22rpx;
+  color: var(--color-text-muted);
 }
 
 button.ghost {
