@@ -20,15 +20,37 @@
       <view>{{detail?.author?.name || '未知'}}</view>
     </view>
   </view>
+  <view v-else class="empty">
+    <view class="hint">未找到对应模板，返回模板库看看其他灵感吧。</view>
+    <button size="mini" @click="goTemplates">返回模板库</button>
+  </view>
 </template>
 <script setup lang="ts">
 import { onLoad } from '@dcloudio/uni-app'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
+import type { TemplateDetail } from '../../utils/mock-api'
 import { getTemplateDetail, createProjectFromTemplate } from '../../utils/mock-api'
-const id = ref(''); const tpl = ref<any>(null); const detail = ref<any>(null)
-onLoad(async (q)=>{ id.value = q?.id as string || ''; detail.value = await getTemplateDetail(id.value); tpl.value = detail.value })
-async function useThis(){ const { projectId } = await createProjectFromTemplate(id.value); uni.navigateTo({ url:`/pages/editor/index?pid=${projectId}` }) }
+
+const id = ref('')
+const detail = ref<TemplateDetail | null>(null)
+const tpl = computed(() => detail.value)
+
+onLoad(async (q) => {
+  id.value = (q?.id as string) || ''
+  if (!id.value) return
+  const fetched = await getTemplateDetail(id.value)
+  detail.value = fetched || null
+})
+
+async function useThis() {
+  if (!id.value) return
+  const { projectId } = await createProjectFromTemplate(id.value)
+  uni.navigateTo({ url:`/pages/editor/index?pid=${projectId}` })
+}
+
 function fav(){ uni.showToast({ title:'已收藏（mock）', icon:'none' }) }
+
+function goTemplates(){ uni.switchTab({ url: '/pages/templates/index' }) }
 </script>
 <style>
 .wrap{ padding:24rpx }
@@ -42,4 +64,6 @@ function fav(){ uni.showToast({ title:'已收藏（mock）', icon:'none' }) }
 .section{ margin-top:16rpx; background:#fff; padding:16rpx; border-radius:16rpx; box-shadow:0 6rpx 18rpx rgba(0,0,0,.06) }
 .h{ font-size:28rpx; margin-bottom:8rpx }
 .chips .chip{ display:inline-block; padding:6rpx 12rpx; background:#F7F7F9; border-radius:12rpx; margin-right:8rpx }
+.empty{ padding:48rpx 24rpx; text-align:center; color:#666 }
+.hint{ margin-bottom:16rpx }
 </style>

@@ -1,0 +1,15 @@
+
+.wrap{ padding:24rpx
+}
+.hero{ display:flex; align-items:center; gap:24rpx; margin-bottom:32rpx
+}
+.avatar{ width:160rpx; height:160rpx; border-radius:80rpx
+}
+.info .name{ font-size:34rpx; font-weight:700
+}
+.info .meta{ color:#777; margin-top:8rpx
+}
+.menu button{ margin-bottom:16rpx; border-radius:16rpx; border-color:#e5e5ec
+}
+.footer{ margin-top:48rpx; color:#aaa; text-align:center
+}

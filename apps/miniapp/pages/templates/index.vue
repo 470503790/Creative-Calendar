@@ -12,16 +12,41 @@
         </view>
       </view>
     </view>
+    <view class="cta">
+      <button size="mini" @click="goCreate">去创作</button>
+      <button size="mini" @click="goWorks">看作品</button>
+    </view>
   </view>
 </template>
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import type { TemplateItem } from '../../utils/mock-api'
 import { getTemplates } from '../../utils/mock-api'
-const q = ref(''); const raw = ref<any[]>([])
-const list = computed(()=> !q.value ? raw.value : raw.value.filter(t => t.title.includes(q.value) || t.tags.some((x:string)=>x.includes(q.value))))
-onMounted(async ()=>{ raw.value = await getTemplates() })
-function doSearch(){}
-function goDetail(id:string){ uni.navigateTo({ url: `/pages/templates/detail?id=${id}` }) }
+
+const q = ref('')
+const raw = ref<TemplateItem[]>([])
+
+const list = computed(() => {
+  if (!q.value) return raw.value
+  const keyword = q.value.trim()
+  return raw.value.filter((t) =>
+    t.title.includes(keyword) || t.tags.some((x) => x.includes(keyword))
+  )
+})
+
+onMounted(async () => {
+  const templates = await getTemplates()
+  raw.value = templates || []
+})
+
+function doSearch() {}
+
+function goDetail(id: string) {
+  if (!id) return
+  uni.navigateTo({ url: `/pages/templates/detail?id=${id}` })
+}
+function goCreate(){ uni.switchTab({ url: '/pages/editor/index' }) }
+function goWorks(){ uni.switchTab({ url: '/pages/works/index' }) }
 </script>
 <style>
 .wrap{ padding:24rpx }
@@ -32,4 +57,5 @@ function goDetail(id:string){ uni.navigateTo({ url: `/pages/templates/detail?id=
 .title{ font-size:28rpx; padding:12rpx 12rpx 0 12rpx }
 .tags{ padding:0 12rpx 12rpx 12rpx; color:#666 }
 .tag{ margin-right:8rpx; font-size:22rpx }
+.cta{ display:flex; gap:16rpx; margin-top:24rpx }
 </style>

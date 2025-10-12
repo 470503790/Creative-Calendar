@@ -7,6 +7,7 @@
       <button @click="addText">加文字</button>
       <button @click="addSticker">加贴纸</button>
       <button @click="exportImage">导出（模拟）</button>
+      <button @click="goWorks">作品列表</button>
     </view>
   </view>
 </template>
@@ -17,6 +18,7 @@ const pid = ref(''); onLoad((q)=>{ pid.value = q?.pid as string || '' })
 function addText(){ uni.showToast({ title:'加文字（mock）', icon:'none' }) }
 function addSticker(){ uni.showToast({ title:'加贴纸（mock）', icon:'none' }) }
 function exportImage(){ uni.showToast({ title:'导出中…（mock）', icon:'none' }) }
+function goWorks(){ uni.switchTab({ url:'/pages/works/index' }) }
 </script>
 <style>
 .wrap{ padding:24rpx }
