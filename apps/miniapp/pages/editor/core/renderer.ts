@@ -1,5 +1,5 @@
 import type { Scene, LayerBase } from './scene'
-import { worldToScreen, screenToWorld } from '../utils/geometry'
+import { screenToWorld } from '../utils/geometry'
 
 export type Viewport = { scale: number; tx: number; ty: number; dpr: number }
 
@@ -27,25 +27,21 @@ export class Renderer {
     const { dpr, scale, tx, ty } = this.viewport
     const page = this.scene.project.pages[this.scene.activePageIndex]
     const canvas = ctx.canvas
-    const targetW = Math.floor(canvas.clientWidth * dpr)
-    const targetH = Math.floor(canvas.clientHeight * dpr)
-    if (canvas.width !== targetW) canvas.width = targetW
-    if (canvas.height !== targetH) canvas.height = targetH
+    const targetW = Math.max(1, Math.floor((canvas as any).clientWidth * dpr))
+    const targetH = Math.max(1, Math.floor((canvas as any).clientHeight * dpr))
+    if (canvas.width != targetW) canvas.width = targetW
+    if (canvas.height != targetH) canvas.height = targetH
 
     ctx.save()
-    ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * ty + 0) // fallback translateX handled below
-    ctx.clearRect(0, 0, canvas.width, canvas.height)
     ctx.setTransform(dpr * scale, 0, 0, dpr * scale, dpr * tx, dpr * ty)
+    ctx.clearRect(-tx, -ty, canvas.width / dpr, canvas.height / dpr)
 
     // page background
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = '#fff'
     ctx.fillRect(0, 0, page.width, page.height)
 
-    // layers
-    for (const layer of page.layers) {
-      this.drawLayer(ctx, layer)
-    }
-
+    // draw layers
+    for (const layer of page.layers) this.drawLayer(ctx, layer)
     ctx.restore()
   }
 
@@ -54,7 +50,7 @@ export class Renderer {
     const { x, y, w, h } = layer.frame
     ctx.save()
     ctx.translate(x + w/2, y + h/2)
-    ctx.rotate((layer.rotate || 0) * Math.PI/180)
+    ctx.rotate(((layer.rotate || 0) * Math.PI) / 180)
     switch (layer.type) {
       case 'text':
         ctx.fillStyle = '#111'
