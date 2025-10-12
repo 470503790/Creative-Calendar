@@ -3,7 +3,9 @@
     "pages/index/index",
     "pages/templates/index",
     "pages/templates/detail",
-    "pages/editor/index"
+    "pages/editor/index",
+    "pages/works/index",
+    "pages/profile/index"
   ],
   "tabBar": {
     "color": "#666666",
@@ -13,11 +15,33 @@
     "list": [
       {
         "pagePath": "pages/index/index",
-        "text": "首页"
+        "text": "首页",
+        "iconPath": "static/tabbar/home.png",
+        "selectedIconPath": "static/tabbar/home-active.png"
       },
       {
         "pagePath": "pages/templates/index",
-        "text": "模板库"
+        "text": "模板",
+        "iconPath": "static/tabbar/templates.png",
+        "selectedIconPath": "static/tabbar/templates-active.png"
+      },
+      {
+        "pagePath": "pages/editor/index",
+        "text": "创作",
+        "iconPath": "static/tabbar/create.png",
+        "selectedIconPath": "static/tabbar/create-active.png"
+      },
+      {
+        "pagePath": "pages/works/index",
+        "text": "作品",
+        "iconPath": "static/tabbar/works.png",
+        "selectedIconPath": "static/tabbar/works-active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "static/tabbar/profile.png",
+        "selectedIconPath": "static/tabbar/profile-active.png"
       }
     ]
   },

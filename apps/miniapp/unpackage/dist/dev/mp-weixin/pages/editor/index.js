@@ -16,11 +16,15 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
     function exportImage() {
       common_vendor.index.showToast({ title: "导出中…（mock）", icon: "none" });
     }
+    function goWorks() {
+      common_vendor.index.switchTab({ url: "/pages/works/index" });
+    }
     return (_ctx, _cache) => {
       return {
         a: common_vendor.o(addText),
         b: common_vendor.o(addSticker),
-        c: common_vendor.o(exportImage)
+        c: common_vendor.o(exportImage),
+        d: common_vendor.o(goWorks)
       };
     };
   }

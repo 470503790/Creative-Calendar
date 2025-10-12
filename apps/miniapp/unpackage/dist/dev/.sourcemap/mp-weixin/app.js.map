@@ -1,1 +1,1 @@
-{"version":3,"file":"app.js","sources":[],"sourcesContent":[],"names":[],"mappings":";;;;;;;;;;;;;;;;;;;;"}
+{"version":3,"file":"app.js","sources":["main.ts"],"sourcesContent":["import { createSSRApp } from 'vue'\r\nimport App from './App.vue'\r\nexport function createApp() {\r\n  const app = createSSRApp(App)\r\n  return { app }\r\n}\r\n"],"names":["createSSRApp"],"mappings":";;;;;;;;;;;;;;;;AAEO,SAAS,YAAY;AACpB,QAAA,MAAMA,2BAAa,GAAG;AAC5B,SAAO,EAAE,IAAI;AACf;AAEA,YAAY,IAAI,MAAM,MAAM;;"}

@@ -6,14 +6,30 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
   setup(__props) {
     const q = common_vendor.ref("");
     const raw = common_vendor.ref([]);
-    const list = common_vendor.computed(() => !q.value ? raw.value : raw.value.filter((t) => t.title.includes(q.value) || t.tags.some((x) => x.includes(q.value))));
+    const list = common_vendor.computed(() => {
+      if (!q.value)
+        return raw.value;
+      const keyword = q.value.trim();
+      return raw.value.filter(
+        (t) => t.title.includes(keyword) || t.tags.some((x) => x.includes(keyword))
+      );
+    });
     common_vendor.onMounted(async () => {
-      raw.value = await utils_mockApi.getTemplates();
+      const templates = await utils_mockApi.getTemplates();
+      raw.value = templates || [];
     });
     function doSearch() {
     }
     function goDetail(id) {
+      if (!id)
+        return;
       common_vendor.index.navigateTo({ url: `/pages/templates/detail?id=${id}` });
+    }
+    function goCreate() {
+      common_vendor.index.switchTab({ url: "/pages/editor/index" });
+    }
+    function goWorks() {
+      common_vendor.index.switchTab({ url: "/pages/works/index" });
     }
     return (_ctx, _cache) => {
       return {
@@ -33,7 +49,9 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
             d: t.id,
             e: common_vendor.o(($event) => goDetail(t.id), t.id)
           };
-        })
+        }),
+        e: common_vendor.o(goCreate),
+        f: common_vendor.o(goWorks)
       };
     };
   }

@@ -15,3 +15,5 @@
 }
 .tag{ margin-right:8rpx; font-size:22rpx
 }
+.cta{ display:flex; gap:16rpx; margin-top:24rpx
+}

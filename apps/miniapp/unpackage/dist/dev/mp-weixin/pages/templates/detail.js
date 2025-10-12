@@ -5,19 +5,26 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
   __name: "detail",
   setup(__props) {
     const id = common_vendor.ref("");
-    const tpl = common_vendor.ref(null);
     const detail = common_vendor.ref(null);
+    const tpl = common_vendor.computed(() => detail.value);
     common_vendor.onLoad(async (q) => {
       id.value = (q == null ? void 0 : q.id) || "";
-      detail.value = await utils_mockApi.getTemplateDetail(id.value);
-      tpl.value = detail.value;
+      if (!id.value)
+        return;
+      const fetched = await utils_mockApi.getTemplateDetail(id.value);
+      detail.value = fetched || null;
     });
     async function useThis() {
+      if (!id.value)
+        return;
       const { projectId } = await utils_mockApi.createProjectFromTemplate(id.value);
       common_vendor.index.navigateTo({ url: `/pages/editor/index?pid=${projectId}` });
     }
     function fav() {
       common_vendor.index.showToast({ title: "已收藏（mock）", icon: "none" });
+    }
+    function goTemplates() {
+      common_vendor.index.switchTab({ url: "/pages/templates/index" });
     }
     return (_ctx, _cache) => {
       var _a, _b;
@@ -41,7 +48,9 @@ const _sfc_main = /* @__PURE__ */ common_vendor.defineComponent({
           };
         }),
         h: common_vendor.t(((_b = (_a = detail.value) == null ? void 0 : _a.author) == null ? void 0 : _b.name) || "未知")
-      } : {});
+      } : {
+        i: common_vendor.o(goTemplates)
+      });
     };
   }
 });

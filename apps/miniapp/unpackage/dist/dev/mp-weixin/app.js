@@ -6,6 +6,8 @@ if (!Math) {
   "./pages/templates/index.js";
   "./pages/templates/detail.js";
   "./pages/editor/index.js";
+  "./pages/works/index.js";
+  "./pages/profile/index.js";
 }
 const _sfc_main = {};
 function _sfc_render(_ctx, _cache) {
