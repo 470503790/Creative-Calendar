@@ -17,3 +17,4 @@ export function listLayerTypes() {
 registerLayerType({ type: 'text', defaults: { text: 'Text' } })
 registerLayerType({ type: 'shape', defaults: { fill: '#F0F0F0' } })
 registerLayerType({ type: 'calendar', defaults: { view: 'month' } })
+registerLayerType({ type: 'material', defaults: { tone: '柔和' } })
