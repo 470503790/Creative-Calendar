@@ -16,6 +16,12 @@
 - 类型检查：`pnpm run typecheck`
 - Prettier 与 `.editorconfig` 统一了代码风格，可配合 lint-staged 在提交前格式化。
 
+## 设计 Tokens 与主题
+- 主题 tokens 定义于 `utils/tokens.ts`，包含颜色、字体字号、圆角与阴影。
+- 在组件中通过 `useTheme()` 获取当前主题，使用返回的 `cssVars` 绑定到根节点即可输出 CSS 变量。
+- 支持明暗主题切换，选择会持久化至本地存储（`creative-calendar-theme`）。
+- 推荐使用 `var(--color-*)`、`var(--radius-*)`、`var(--font-*)` 等变量来编写样式，以确保主题一致性。
+
 ## 功能完成后的下一步
 1. 在 `apps/miniapp` 中执行 `pnpm install` → `pnpm run lint` → `pnpm run typecheck`，确保规范与类型检查全部通过。
 2. 使用 HBuilderX 运行到微信开发者工具，确认首页和关键页面在模拟器中工作正常。
