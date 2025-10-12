@@ -164,12 +164,22 @@
         <UiError :type="recentStatus === 'offline' ? 'offline' : 'error'" @retry="refreshRecentFromError" />
       </view>
     </view>
+
+    <FabCreate @click="openCreateSheet" />
+    <ActionSheetCreate
+      :visible="createSheetVisible"
+      :actions="createActions"
+      @close="closeCreateSheet"
+      @select="handleCreateSelect"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
+import ActionSheetCreate from '../../components/ActionSheetCreate.vue'
+import FabCreate from '../../components/FabCreate.vue'
 import UiEmpty from '../../components/ui-empty/UiEmpty.vue'
 import UiError from '../../components/ui-error/UiError.vue'
 import UiLazyImage from '../../components/ui-lazy-image/UiLazyImage.vue'
@@ -193,14 +203,82 @@ interface RecentEdit {
   size?: string
 }
 
+interface CreateAction {
+  id: string
+  title: string
+  description: string
+  icon: string
+  route: string
+}
+
 const homeData = ref<HomeResponse | null>(null)
 const homeStatus = ref<PageState>('loading')
 
 const recentEdits = ref<RecentEdit[]>([])
 const recentStatus = ref<PageState>('loading')
+const createSheetVisible = ref(false)
+
+const createActions: CreateAction[] = [
+  {
+    id: 'monthly',
+    title: '月历策划',
+    description: '适用于整月品牌与营销节奏规划',
+    icon: '📆',
+    route: '/pages/wizard/monthly',
+  },
+  {
+    id: 'weekly',
+    title: '周历计划',
+    description: '聚焦一周重点活动，快速排布内容',
+    icon: '🗓️',
+    route: '/pages/wizard/weekly',
+  },
+  {
+    id: 'countdown',
+    title: '倒数日活动',
+    description: '倒数提醒关键节点，保持热度',
+    icon: '⏳',
+    route: '/pages/wizard/countdown',
+  },
+  {
+    id: 'poster',
+    title: '创意海报',
+    description: '一键开启视觉灵感，快速生成海报',
+    icon: '🖼️',
+    route: '/pages/wizard/poster',
+  },
+  {
+    id: 'blank',
+    title: '空白画布',
+    description: '从零开始自由创作你的作品',
+    icon: '➕',
+    route: '/pages/wizard/blank',
+  },
+]
 
 const { isDark, toggleTheme } = useTheme()
 const themeIcon = computed(() => (isDark.value ? '🌙' : '☀️'))
+
+function logCreateClick(type: string) {
+  console.log(`create_click(${type})`)
+}
+
+function openCreateSheet() {
+  logCreateClick('open_sheet')
+  createSheetVisible.value = true
+}
+
+function closeCreateSheet() {
+  logCreateClick('close_sheet')
+  createSheetVisible.value = false
+}
+
+function handleCreateSelect(action: CreateAction) {
+  logCreateClick(action.id)
+  createSheetVisible.value = false
+  if (action.route)
+    uni.navigateTo({ url: action.route })
+}
 
 function handleToggleTheme() {
   toggleTheme()

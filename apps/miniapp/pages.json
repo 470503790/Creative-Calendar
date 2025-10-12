@@ -1,6 +1,38 @@
 {
   "pages": [
     {
+      "path": "pages/onboarding/welcome/index",
+      "style": {
+        "navigationBarTitleText": "",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    {
+      "path": "pages/onboarding/preferences/index",
+      "style": {
+        "navigationBarTitleText": "",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    {
+      "path": "pages/onboarding/permissions/index",
+      "style": {
+        "navigationBarTitleText": "",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    {
+      "path": "pages/onboarding/profile/index",
+      "style": {
+        "navigationBarTitleText": "",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    {
       "path": "pages/index/index",
       "style": {
         "navigationBarTitleText": "创意日历"
@@ -46,12 +78,56 @@
       }
     },
     {
+      "path": "pages/wizard/monthly",
+      "style": {
+        "navigationBarTitleText": "月历向导",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    {
+      "path": "pages/wizard/weekly",
+      "style": {
+        "navigationBarTitleText": "周历向导",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    {
+      "path": "pages/wizard/poster",
+      "style": {
+        "navigationBarTitleText": "海报向导",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    {
+      "path": "pages/wizard/blank",
+      "style": {
+        "navigationBarTitleText": "空白画布",
+        "navigationStyle": "custom",
+        "backgroundColor": "#FFFFFF"
+      }
+    },
+    {
       "path": "pages/demo/ui/index",
       "style": {
         "navigationBarTitleText": "UI 组件库",
         "navigationBarBackgroundColor": "#ffffff",
         "navigationBarTextStyle": "black",
         "backgroundColor": "#F7F7F9"
+      }
+    },
+    {
+      "path": "pages/projects/index",
+      "style": {
+        "navigationBarTitleText": "Projects"
+      }
+    },
+    {
+      "path": "pages/settings/index",
+      "style": {
+        "navigationBarTitleText": "Settings"
       }
     }
   ],

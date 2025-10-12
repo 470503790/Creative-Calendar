@@ -477,6 +477,35 @@ function createProjectsStore() {
     return id
   }
 
+  function createCountdownProject(payload: {
+    name: string
+    description: string
+    targetDateLabel: string
+    style: { key: string; title: string }
+    theme: { key: string; label: string; colors: [string, string]; accent: string }
+    countdown: { daysLabel: string; isPast: boolean; isUpcoming: boolean }
+  }) {
+    const baseTags = new Set<string>([
+      '倒数日',
+      payload.style.title,
+      payload.theme.label,
+      payload.countdown.isUpcoming ? '进行中' : '',
+      payload.countdown.isPast ? '已结束' : '',
+    ].filter(Boolean) as string[])
+
+    const projectDescription = `${payload.description} | 目标：${payload.targetDateLabel}`
+
+    return upsertProject({
+      name: payload.name,
+      description: projectDescription,
+      coverColor: payload.theme.colors[0],
+      accentColor: payload.theme.colors[1] ?? payload.theme.accent,
+      category: '倒数日',
+      tags: Array.from(baseTags),
+      size: '1080 × 1920',
+    })
+  }
+
   return {
     projects,
     exports,
@@ -508,6 +537,7 @@ function createProjectsStore() {
     recordExportForSelected,
     touchProject,
     upsertProject,
+    createCountdownProject,
     refresh,
   }
 }

@@ -221,6 +221,7 @@ interface DatePreset {
 }
 
 const STORAGE_KEY = 'creative-calendar:wizard-countdown'
+const RECENT_STORAGE_KEY = 'creative-calendar:recent-edits'
 const projectsStore = useProjectsStore()
 
 const steps: StepItem[] = [
@@ -311,6 +312,14 @@ const datePresets: DatePreset[] = [
   { label: '30 天后', offset: 30 },
   { label: '100 天后', offset: 100 },
 ]
+
+interface RecentEditEntry {
+  id: string
+  name: string
+  updatedAt: string
+  coverUrl?: string
+  size?: string
+}
 
 const state = reactive<WizardState>(createDefaultState())
 const shouldPersist = ref(false)
@@ -448,6 +457,44 @@ function clearPersistedState() {
   }
 }
 
+function appendRecentEdit(entry: RecentEditEntry) {
+  try {
+    if (typeof uni === 'undefined' || typeof uni.getStorageSync !== 'function') return
+    const raw = uni.getStorageSync(RECENT_STORAGE_KEY)
+    let list: RecentEditEntry[] = []
+    if (Array.isArray(raw)) {
+      list = raw as RecentEditEntry[]
+    }
+    else if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw)
+        if (Array.isArray(parsed))
+          list = parsed as RecentEditEntry[]
+      }
+      catch (error) {
+        console.warn('[wizard] failed to parse recent edits', error)
+      }
+    }
+
+    const normalized = list
+      .filter((item) => item && typeof item === 'object' && typeof item.id === 'string')
+      .map((item) => ({
+        id: String(item.id),
+        name: String(item.name ?? entry.name),
+        updatedAt: String(item.updatedAt ?? entry.updatedAt),
+        coverUrl: item.coverUrl ? String(item.coverUrl) : undefined,
+        size: item.size ? String(item.size) : undefined,
+      }))
+
+    const merged = [entry, ...normalized.filter((item) => item.id !== entry.id)]
+    const trimmed = merged.slice(0, 6)
+    uni.setStorageSync(RECENT_STORAGE_KEY, JSON.stringify(trimmed))
+  }
+  catch (error) {
+    console.warn('[wizard] failed to append recent edit', error)
+  }
+}
+
 function resetState(next: WizardState) {
   state.stepIndex = next.stepIndex
   state.targetDate = next.targetDate
@@ -510,20 +557,20 @@ async function handleSubmit() {
     const countdown = countdownInfo.value
     const projectName = `${style.title} · ${formatShortDate(state.targetDate)}`
     const description = `目标日期：${targetDateLabel.value} · ${countdown.daysLabel}`
-    const tags = ['倒数日', style.title, theme.label]
-    if (countdown.isUpcoming) {
-      tags.push('进行中')
-    } else if (countdown.isPast) {
-      tags.push('已结束')
-    }
-
-    const projectId = projectsStore.upsertProject({
+    const projectId = projectsStore.createCountdownProject({
       name: projectName,
       description,
-      coverColor: theme.colors[0],
-      accentColor: theme.colors[1],
-      category: '倒数日',
-      tags,
+      targetDateLabel: targetDateLabel.value || state.targetDate,
+      style: { key: style.key, title: style.title },
+      theme: { key: theme.key, label: theme.label, colors: theme.colors, accent: theme.accent },
+      countdown,
+    })
+
+    appendRecentEdit({
+      id: projectId,
+      name: projectName,
+      updatedAt: formatRecentTimestamp(),
+      size: '1080 × 1920',
     })
 
     shouldPersist.value = false
@@ -574,6 +621,15 @@ function formatPreviewDate(value: string) {
   const month = `${date.getMonth() + 1}`.padStart(2, '0')
   const day = `${date.getDate()}`.padStart(2, '0')
   return `${month}.${day}`
+}
+
+function formatRecentTimestamp(date = new Date()) {
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  const hours = `${date.getHours()}`.padStart(2, '0')
+  const minutes = `${date.getMinutes()}`.padStart(2, '0')
+  return `${year}-${month}-${day} ${hours}:${minutes}`
 }
 
 function createCountdownInfo(value: string) {

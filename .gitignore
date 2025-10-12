@@ -1,2 +1,4 @@
 apps/miniapp/project.private.config.json
 /apps/miniapp/unpackage
+/apps/miniapp/node_modules
+/apps/miniapp/pages.backup.json
