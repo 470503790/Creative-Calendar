@@ -1,0 +1,53 @@
+.wizard-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 32rpx;
+  min-height: 100vh;
+  padding: 120rpx 64rpx 80rpx;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f3ff 100%);
+  box-sizing: border-box;
+}
+
+.badge {
+  font-size: 24rpx;
+  letter-spacing: 4rpx;
+  color: #7c6cff;
+  font-weight: 600;
+}
+
+.title {
+  font-size: 56rpx;
+  font-weight: 700;
+  color: #1f1f2b;
+}
+
+.description {
+  font-size: 30rpx;
+  line-height: 48rpx;
+  color: #5d5d6d;
+  max-width: 560rpx;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+  margin-top: 32rpx;
+  width: 100%;
+}
+
+.primary {
+  line-height: 80rpx;
+  border-radius: 999rpx;
+  background: #7c6cff;
+  color: #ffffff;
+}
+
+.secondary {
+  line-height: 80rpx;
+  border-radius: 999rpx;
+  color: #7c6cff;
+  border: 2rpx solid #7c6cff;
+}

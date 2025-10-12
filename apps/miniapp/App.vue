@@ -9,14 +9,28 @@ import { onLaunch } from '@dcloudio/uni-app'
 import { computed } from 'vue'
 import { useTheme } from './composables/useTheme'
 import { AnalyticsEvents, track } from './utils/analytics'
+import { getOnboarded, getPrefs } from './utils/prefs'
 import { markAppLaunch } from './utils/perf'
 
 const { cssVars } = useTheme()
 const themeStyles = computed(() => cssVars.value)
 
+const onboardingRoutes: Record<string, string> = {
+  welcome: '/pages/onboarding/welcome/index',
+  preferences: '/pages/onboarding/preferences/index',
+  permissions: '/pages/onboarding/permissions/index',
+  profile: '/pages/onboarding/profile/index',
+}
+
 onLaunch(() => {
   markAppLaunch()
   track(AnalyticsEvents.APP_LAUNCH)
+  if (!getOnboarded()) {
+    const prefs = getPrefs()
+    const step = prefs.onboardingStep ?? 'welcome'
+    const target = onboardingRoutes[step] ?? onboardingRoutes.welcome
+    uni.reLaunch({ url: target })
+  }
 })
 </script>
 

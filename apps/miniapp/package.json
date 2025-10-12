@@ -6,7 +6,9 @@
     "dev:wx": "echo 'use HBuilderX to run mp-weixin' && exit 0",
     "build:wx": "echo 'use HBuilderX to build mp-weixin' && exit 0",
     "lint": "eslint . --ext .ts,.vue",
-    "typecheck": "vue-tsc --noEmit"
+    "typecheck": "vue-tsc --noEmit",
+    "audit:routes": "node tools/route-audit.mjs",
+    "fix:routes": "node tools/route-audit.mjs --fix"
   },
   "lint-staged": {
     "*.{ts,js,vue}": "eslint --fix",
