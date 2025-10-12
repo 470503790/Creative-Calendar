@@ -1,3 +1,5 @@
+import { resolveMockRequest } from './mock-controls'
+
 export type TemplateItem = {
   id: string;
   title: string;
@@ -33,8 +35,8 @@ export type HomeTodayCard = {
 };
 
 export type HomeResponse = {
-  greeting: HomeGreeting;
-  today: HomeTodayCard;
+  greeting: HomeGreeting | null;
+  today: HomeTodayCard | null;
   templates: TemplateItem[];
 };
 export const mockTemplates: TemplateItem[] = [
@@ -219,14 +221,38 @@ function buildTodayCard(now: Date): HomeTodayCard {
   };
 }
 
+import { resolveMockRequest } from './mock-controls'
+
 export async function getHome(): Promise<HomeResponse> {
   const now = new Date();
-  return {
-    greeting: buildGreeting(),
-    today: buildTodayCard(now),
-    templates: mockTemplates,
-  };
+  return resolveMockRequest('home', {
+    normal: () => ({
+      greeting: buildGreeting(),
+      today: buildTodayCard(now),
+      templates: mockTemplates,
+    }),
+    empty: () => ({
+      greeting: null,
+      today: null,
+      templates: [],
+    }),
+  });
 }
-export async function getTemplates(){ return mockTemplates }
-export async function getTemplateDetail(id:string){ return mockTemplateDetail[id] }
-export async function createProjectFromTemplate(tplId: string){ return { projectId: `p_${tplId}_${Date.now()}` } }
+
+export async function getTemplates() {
+  return resolveMockRequest('templates', {
+    normal: () => mockTemplates,
+    empty: () => [],
+  });
+}
+
+export async function getTemplateDetail(id: string): Promise<TemplateDetail | null> {
+  return resolveMockRequest(`template:${id}`, {
+    normal: () => mockTemplateDetail[id] ?? null,
+    empty: () => null,
+  });
+}
+
+export async function createProjectFromTemplate(tplId: string) {
+  return { projectId: `p_${tplId}_${Date.now()}` };
+}

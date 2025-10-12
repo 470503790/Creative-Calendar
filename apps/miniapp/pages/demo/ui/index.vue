@@ -83,13 +83,32 @@
           </ui-empty>
         </ui-card>
       </ui-section>
+
+      <ui-section title="UiError" description="错误态组件默认提供重试按钮，可自定义文案。">
+        <ui-card padding="lg" outlined>
+          <ui-error @retry="handleRetry" />
+        </ui-card>
+      </ui-section>
+
+      <ui-section title="UiSkeleton" description="骨架组件支持不同形态，用于内容加载中。">
+        <ui-card padding="lg" outlined>
+          <view class="ui-demo__column">
+            <UiSkeleton width="80%" />
+            <UiSkeleton width="60%" />
+            <view class="ui-demo__row">
+              <UiSkeleton variant="block" width="120rpx" height="120rpx" />
+              <UiSkeleton variant="circle" width="120rpx" height="120rpx" />
+            </view>
+          </view>
+        </ui-card>
+      </ui-section>
     </view>
   </scroll-view>
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { UiButton, UiCard, UiEmpty, UiInput, UiSection, UiTag } from '../../../components'
+import { UiButton, UiCard, UiEmpty, UiError, UiInput, UiSection, UiSkeleton, UiTag } from '../../../components'
 
 const keyword = ref('创意灵感')
 const email = ref('hello@example.com')
@@ -106,6 +125,10 @@ function createWork() {
 
 function loadTemplates() {
   uni.switchTab({ url: '/pages/templates/index' })
+}
+
+function handleRetry() {
+  uni.showToast({ title: '已重新尝试加载', icon: 'none' })
 }
 </script>
 

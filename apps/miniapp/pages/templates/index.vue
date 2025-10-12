@@ -49,21 +49,27 @@
       </view>
     </view>
 
-    <view v-if="status === 'loading'" class="state state-loading">
-      <view class="skeleton-grid">
-        <view v-for="n in 8" :key="n" class="skeleton-tile" />
+    <view v-if="status === 'loading' || status === 'idle'" class="state-block">
+      <view class="grid grid--skeleton">
+        <view v-for="n in 8" :key="`tpl-skel-${n}`" class="tile tile--skeleton">
+          <UiSkeleton variant="block" height="260rpx" radius="32" />
+          <view class="tile-body">
+            <UiSkeleton width="80%" />
+            <UiSkeleton width="60%" height="20rpx" />
+          </view>
+        </view>
       </view>
     </view>
-    <view v-else-if="status === 'error'" class="state state-error">
-      <text class="state-title">模板加载失败</text>
-      <text class="state-desc">请检查网络后再次尝试</text>
-      <button size="mini" @click="retry">重新加载</button>
+    <view v-else-if="status === 'error'" class="state-block">
+      <UiError :type="errorType === 'offline' ? 'offline' : 'error'" @retry="retry" />
     </view>
     <view v-else>
-      <view v-if="isEmpty" class="state state-empty">
-        <text class="state-title">没有找到匹配的模板</text>
-        <text class="state-desc">尝试修改筛选条件或重置搜索</text>
-        <button size="mini" @click="resetAll">清空条件</button>
+      <view v-if="isEmpty" class="state-block">
+        <UiEmpty title="没有找到匹配的模板" description="尝试修改筛选条件或重置搜索">
+          <template #actions>
+            <button size="mini" @click="resetAll">清空条件</button>
+          </template>
+        </UiEmpty>
       </view>
       <view v-else class="grid">
         <view
@@ -99,6 +105,7 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
+import { UiEmpty, UiError, UiSkeleton } from '../../components'
 import type { FilterKey } from '../../stores/template'
 import { useTemplateStore } from '../../stores/template'
 
@@ -108,6 +115,7 @@ const filters = templateStore.filters
 const filteredItems = templateStore.filteredItems
 const status = templateStore.status
 const isEmpty = templateStore.isEmpty
+const errorType = templateStore.errorType
 
 const searchTerm = computed({
   get: () => templateStore.query.value,
@@ -291,6 +299,12 @@ function goWorks() {
   gap: 20rpx;
 }
 
+.grid--skeleton {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20rpx;
+}
+
 .tile {
   background: var(--color-surface);
   border-radius: var(--radius-lg);
@@ -299,6 +313,17 @@ function goWorks() {
   display: flex;
   flex-direction: column;
   gap: 8rpx;
+}
+
+.tile--skeleton {
+  padding: 24rpx;
+  gap: 20rpx;
+}
+
+.tile--skeleton .tile-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
 .cover-wrap {
@@ -368,47 +393,12 @@ function goWorks() {
   font-size: var(--font-caption);
 }
 
-.state {
+.state-block {
+  padding: 64rpx 24rpx;
   display: flex;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  gap: 16rpx;
-  padding: 80rpx 24rpx;
-  color: var(--color-text-muted);
+  align-items: center;
   text-align: center;
-}
-
-.state-title {
-  font-size: var(--font-body);
-  color: var(--color-text);
-}
-
-.state-desc {
-  font-size: var(--font-caption);
-}
-
-.skeleton-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 20rpx;
-  width: 100%;
-}
-
-.skeleton-tile {
-  height: 420rpx;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06));
-  animation: shimmer 1.4s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -480rpx 0;
-  }
-  100% {
-    background-position: 480rpx 0;
-  }
 }
 
 .cta {

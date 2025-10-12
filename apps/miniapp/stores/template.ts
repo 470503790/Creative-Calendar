@@ -1,6 +1,7 @@
 import { computed, reactive, ref } from 'vue'
 import type { TemplateItem } from '../utils/mock-api'
 import { getTemplates } from '../utils/mock-api'
+import { isOfflineError } from '../utils/mock-controls'
 
 type FilterKey = 'style' | 'usage' | 'color' | 'payment' | 'motion'
 
@@ -94,6 +95,7 @@ let internalStore: TemplateStore | null = null
 function createTemplateStore() {
   const items = ref<TemplateRecord[]>([])
   const status = ref<TemplateStatus>('idle')
+  const errorType = ref<'none' | 'offline' | 'error'>('none')
   const query = ref('')
   const activeFilters = reactive<Record<FilterKey, string[]>>({
     style: [],
@@ -154,14 +156,17 @@ function createTemplateStore() {
     if (!force && status.value === 'ready' && items.value.length) return
 
     status.value = 'loading'
+    errorType.value = 'none'
     try {
       const raw = await getTemplates()
       const generated = buildTemplateLibrary(raw || [])
       items.value = generated
       status.value = 'ready'
+      errorType.value = 'none'
     } catch (error) {
       console.warn('Failed to load templates', error)
       status.value = 'error'
+      errorType.value = isOfflineError(error) ? 'offline' : 'error'
     }
   }
 
@@ -201,6 +206,7 @@ function createTemplateStore() {
     filteredItems,
     hasActiveFilters,
     isEmpty,
+    errorType,
     loadTemplates,
     setQuery,
     clearQuery,

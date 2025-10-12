@@ -1,4 +1,5 @@
 import { computed, ref, watch } from 'vue'
+import { isOfflineError, resolveMockRequest } from '../utils/mock-controls'
 
 export type ProjectSortKey = 'updatedAt' | 'createdAt' | 'name'
 export type ProjectSortOrder = 'asc' | 'desc'
@@ -202,8 +203,11 @@ export function useProjectsStore() {
 }
 
 function createProjectsStore() {
-  const projects = ref<ProjectItem[]>(loadProjects())
+  const projects = ref<ProjectItem[]>([])
   const exports = ref<ProjectExportRecord[]>(loadExports())
+  const status = ref<'idle' | 'loading' | 'ready' | 'empty' | 'error'>('loading')
+  const errorType = ref<'none' | 'offline' | 'error'>('none')
+  const isHydrated = ref(false)
 
   const searchQuery = ref('')
   const sortPreset = ref<ProjectSortPreset>('recent')
@@ -223,6 +227,7 @@ function createProjectsStore() {
   watch(
     projects,
     (value) => {
+      if (!isHydrated.value) return
       writeStorage(PROJECT_STORAGE_KEY, value)
       pruneSelection()
     },
@@ -255,6 +260,31 @@ function createProjectsStore() {
       isSelectionMode.value = false
     }
   }
+
+  async function refresh(force = false) {
+    if (status.value === 'loading' && !force) return
+    status.value = 'loading'
+    errorType.value = 'none'
+    try {
+      const dataset = await resolveMockRequest('projects', {
+        normal: () => loadProjects(),
+        empty: () => [],
+      })
+      projects.value = dataset
+      status.value = dataset.length ? 'ready' : 'empty'
+      errorType.value = 'none'
+    } catch (error) {
+      console.warn('[projects] failed to load projects', error)
+      projects.value = []
+      status.value = 'error'
+      errorType.value = isOfflineError(error) ? 'offline' : 'error'
+    } finally {
+      isHydrated.value = true
+      pruneSelection()
+    }
+  }
+
+  refresh()
 
   const filteredProjects = computed<ProjectItem[]>(() => {
     const keyword = searchQuery.value.trim().toLowerCase()
@@ -350,6 +380,9 @@ function createProjectsStore() {
     exports.value = exports.value.filter((record) => !idSet.has(record.projectId))
     selectedIds.value = []
     isSelectionMode.value = false
+    if (!projects.value.length) {
+      status.value = 'empty'
+    }
     return before - projects.value.length
   }
 
@@ -440,12 +473,15 @@ function createProjectsStore() {
       exportCount: payload.exportCount ?? 0,
     }
     projects.value = [project, ...projects.value]
+    status.value = 'ready'
     return id
   }
 
   return {
     projects,
     exports,
+    status,
+    errorType,
     filteredProjects,
     searchQuery,
     sortOptions,
@@ -472,5 +508,6 @@ function createProjectsStore() {
     recordExportForSelected,
     touchProject,
     upsertProject,
+    refresh,
   }
 }
