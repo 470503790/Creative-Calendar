@@ -7,8 +7,8 @@
     <view v-if="projects.length" class="list">
       <view v-for="p in projects" :key="p.id" class="card">
         <view class="info">
-          <view class="name">{{p.name}}</view>
-          <view class="meta">更新于 {{p.updated}}</view>
+          <view class="name">{{ p.name }}</view>
+          <view class="meta">更新于 {{ p.updated }}</view>
         </view>
         <view class="ops">
           <button size="mini" @click="openProject(p.id)">继续编辑</button>
@@ -34,27 +34,78 @@ type WorkItem = {
 const projects = ref<WorkItem[]>([
   { id: 'p_001', name: '夏日海报', updated: '2025-03-12 20:45' },
   { id: 'p_002', name: '品牌月历', updated: '2025-03-10 09:12' },
-  { id: 'p_003', name: '倒数日海报', updated: '2025-03-06 14:30' }
+  { id: 'p_003', name: '倒数日海报', updated: '2025-03-06 14:30' },
 ])
 
-function goCreate(){ uni.switchTab({ url: '/pages/editor/index' }) }
+function goCreate() {
+  uni.switchTab({ url: '/pages/editor/index' })
+}
 
-function openProject(id: string){
+function openProject(id: string) {
   if (!id) return
   uni.navigateTo({ url: `/pages/editor/index?pid=${id}` })
 }
 
-function preview(p: WorkItem){ uni.showToast({ title: `${p.name}（预览中）`, icon: 'none' }) }
+function preview(p: WorkItem) {
+  uni.showToast({ title: `${p.name}（预览中）`, icon: 'none' })
+}
 </script>
 <style>
-.wrap{ padding:24rpx }
-.header{ display:flex; align-items:center; justify-content:space-between; margin-bottom:24rpx }
-.title{ font-size:36rpx; font-weight:700 }
-.list{ display:flex; flex-direction:column; gap:16rpx }
-.card{ background:#fff; padding:24rpx; border-radius:16rpx; box-shadow:0 6rpx 18rpx rgba(0,0,0,.06); display:flex; justify-content:space-between; align-items:center }
-.info .name{ font-size:30rpx; margin-bottom:8rpx }
-.info .meta{ color:#888; font-size:24rpx }
-.ops{ display:flex; gap:12rpx }
-.empty{ background:#fff; padding:48rpx 24rpx; border-radius:16rpx; text-align:center; color:#888; box-shadow:0 6rpx 18rpx rgba(0,0,0,.06) }
-.hint{ margin-bottom:16rpx }
+.wrap {
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.title {
+  font-size: var(--font-subtitle);
+  font-weight: 700;
+  color: var(--color-text);
+}
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.card {
+  background: var(--color-surface);
+  padding: 24rpx;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.info .name {
+  font-size: var(--font-body);
+  margin-bottom: 8rpx;
+  color: var(--color-text);
+}
+.info .meta {
+  color: var(--color-text-muted);
+  font-size: var(--font-caption);
+}
+.ops {
+  display: flex;
+  gap: 12rpx;
+}
+.empty {
+  background: var(--color-surface);
+  padding: 48rpx 24rpx;
+  border-radius: var(--radius-lg);
+  text-align: center;
+  color: var(--color-text-muted);
+  box-shadow: var(--shadow-card);
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.hint {
+  font-size: var(--font-body);
+}
 </style>

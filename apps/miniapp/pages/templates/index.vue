@@ -6,9 +6,9 @@
     <view class="grid">
       <view v-for="t in list" :key="t.id" class="tile" @click="goDetail(t.id)">
         <image class="cover" :src="t.coverUrl" mode="aspectFill" />
-        <view class="title">{{t.title}}</view>
+        <view class="title">{{ t.title }}</view>
         <view class="tags">
-          <text v-for="tag in t.tags" :key="tag" class="tag">#{{tag}}</text>
+          <text v-for="tag in t.tags" :key="tag" class="tag">#{{ tag }}</text>
         </view>
       </view>
     </view>
@@ -19,7 +19,7 @@
   </view>
 </template>
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import type { TemplateItem } from '../../utils/mock-api'
 import { getTemplates } from '../../utils/mock-api'
 
@@ -45,17 +45,62 @@ function goDetail(id: string) {
   if (!id) return
   uni.navigateTo({ url: `/pages/templates/detail?id=${id}` })
 }
-function goCreate(){ uni.switchTab({ url: '/pages/editor/index' }) }
-function goWorks(){ uni.switchTab({ url: '/pages/works/index' }) }
+function goCreate() {
+  uni.switchTab({ url: '/pages/editor/index' })
+}
+function goWorks() {
+  uni.switchTab({ url: '/pages/works/index' })
+}
 </script>
 <style>
-.wrap{ padding:24rpx }
-.search input{ background:#fff; border-radius:16rpx; padding:16rpx; box-shadow:0 6rpx 18rpx rgba(0,0,0,.06) }
-.grid{ display:grid; grid-template-columns:1fr 1fr; gap:16rpx; margin-top:16rpx }
-.tile{ background:#fff; border-radius:16rpx; overflow:hidden; box-shadow:0 6rpx 18rpx rgba(0,0,0,.06) }
-.cover{ width:100%; height:360rpx; background:#eee }
-.title{ font-size:28rpx; padding:12rpx 12rpx 0 12rpx }
-.tags{ padding:0 12rpx 12rpx 12rpx; color:#666 }
-.tag{ margin-right:8rpx; font-size:22rpx }
-.cta{ display:flex; gap:16rpx; margin-top:24rpx }
+.wrap {
+  padding: 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+.search input {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  padding: 16rpx;
+  box-shadow: var(--shadow-card);
+  color: var(--color-text);
+}
+.search input::placeholder {
+  color: var(--color-text-muted);
+}
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+.tile {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.cover {
+  width: 100%;
+  height: 360rpx;
+  background: var(--color-surface-muted);
+}
+.title {
+  font-size: var(--font-body);
+  padding: 12rpx 12rpx 0 12rpx;
+  color: var(--color-text);
+}
+.tags {
+  padding: 0 12rpx 12rpx 12rpx;
+  color: var(--color-text-muted);
+}
+.tag {
+  margin-right: 8rpx;
+  font-size: var(--font-caption);
+}
+.cta {
+  display: flex;
+  gap: 16rpx;
+  margin-top: 8rpx;
+}
 </style>
