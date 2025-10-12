@@ -9,11 +9,13 @@ import { onLaunch } from '@dcloudio/uni-app'
 import { computed } from 'vue'
 import { useTheme } from './composables/useTheme'
 import { AnalyticsEvents, track } from './utils/analytics'
+import { markAppLaunch } from './utils/perf'
 
 const { cssVars } = useTheme()
 const themeStyles = computed(() => cssVars.value)
 
 onLaunch(() => {
+  markAppLaunch()
   track(AnalyticsEvents.APP_LAUNCH)
 })
 </script>

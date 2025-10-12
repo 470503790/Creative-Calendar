@@ -27,7 +27,7 @@
     <view v-else-if="status === 'ready' && tpl" class="wrap">
       <view class="hero-card">
         <view class="preview" :style="{ paddingBottom: previewPadding }">
-          <image class="preview-img" :src="tpl.coverUrl" mode="aspectFill" />
+          <UiLazyImage class="preview-img" :src="tpl.coverUrl" mode="aspectFill" :fade="true" />
           <view class="preview-overlay" />
           <view class="preview-label">
             <text class="label-primary">{{ activeSizeLabel }}</text>
@@ -114,7 +114,10 @@
 <script setup lang="ts">
 import { onLoad } from '@dcloudio/uni-app'
 import { computed, ref, watch } from 'vue'
-import { UiEmpty, UiError, UiSkeleton } from '../../components'
+import UiEmpty from '../../components/ui-empty/UiEmpty.vue'
+import UiError from '../../components/ui-error/UiError.vue'
+import UiLazyImage from '../../components/ui-lazy-image/UiLazyImage.vue'
+import UiSkeleton from '../../components/ui-skeleton/UiSkeleton.vue'
 import type { TemplateDetail, TemplateSizeOption } from '../../utils/mock-api'
 import { createProjectFromTemplate, getTemplateDetail } from '../../utils/mock-api'
 import { isOfflineError } from '../../utils/mock-controls'

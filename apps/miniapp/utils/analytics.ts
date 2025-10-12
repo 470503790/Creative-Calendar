@@ -11,6 +11,7 @@ export const AnalyticsEvents = {
   HOME_VIEW_WORKS: 'home_view_works',
   HOME_CONTINUE_EDIT: 'home_continue_edit',
   HOME_REFRESH: 'home_refresh',
+  HOME_FIRST_SCREEN_READY: 'home_first_screen_ready',
   TEMPLATES_SEARCH: 'templates_search',
   TEMPLATES_CLEAR_SEARCH: 'templates_clear_search',
   TEMPLATES_FILTER_TOGGLE: 'templates_filter_toggle',
