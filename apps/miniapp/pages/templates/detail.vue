@@ -118,6 +118,7 @@ import { UiEmpty, UiError, UiSkeleton } from '../../components'
 import type { TemplateDetail, TemplateSizeOption } from '../../utils/mock-api'
 import { createProjectFromTemplate, getTemplateDetail } from '../../utils/mock-api'
 import { isOfflineError } from '../../utils/mock-controls'
+import { AnalyticsEvents, track } from '../../utils/analytics'
 
 const FAVORITE_STORAGE_KEY = 'cc.favorites.templates'
 
@@ -258,6 +259,10 @@ function toggleFavorite() {
     detail.value = { ...detail.value, isFavorite: nextState }
   }
   uni.showToast({ title: nextState ? '已加入收藏' : '已取消收藏', icon: 'none' })
+  track(AnalyticsEvents.TEMPLATE_DETAIL_TOGGLE_FAVORITE, {
+    templateId: id.value,
+    isFavorite: nextState,
+  })
 }
 
 async function useThis() {
@@ -265,6 +270,10 @@ async function useThis() {
   isUsing.value = true
   uni.showLoading({ title: '生成中', mask: true })
   try {
+    track(AnalyticsEvents.TEMPLATE_DETAIL_USE, {
+      templateId: id.value,
+      sizeKey: activeSizeKey.value || selectedSize.value?.key,
+    })
     const { projectId } = await createProjectFromTemplate(id.value)
     uni.navigateTo({ url: `/pages/editor/index?pid=${projectId}` })
   } catch (error) {
@@ -278,13 +287,19 @@ async function useThis() {
 
 function selectSize(key: string) {
   activeSizeKey.value = key
+  track(AnalyticsEvents.TEMPLATE_DETAIL_SELECT_SIZE, {
+    templateId: id.value,
+    sizeKey: key,
+  })
 }
 
 function goTemplates() {
+  track(AnalyticsEvents.TEMPLATE_DETAIL_BACK_TO_LIST, { templateId: id.value })
   uni.switchTab({ url: '/pages/templates/index' })
 }
 
 function retry() {
+  track(AnalyticsEvents.TEMPLATE_DETAIL_RETRY, { templateId: id.value, status: status.value })
   if (!id.value) {
     status.value = 'empty'
     return

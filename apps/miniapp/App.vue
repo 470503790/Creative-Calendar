@@ -5,11 +5,17 @@
 </template>
 
 <script setup lang="ts">
+import { onLaunch } from '@dcloudio/uni-app'
 import { computed } from 'vue'
 import { useTheme } from './composables/useTheme'
+import { AnalyticsEvents, track } from './utils/analytics'
 
 const { cssVars } = useTheme()
 const themeStyles = computed(() => cssVars.value)
+
+onLaunch(() => {
+  track(AnalyticsEvents.APP_LAUNCH)
+})
 </script>
 
 <style>

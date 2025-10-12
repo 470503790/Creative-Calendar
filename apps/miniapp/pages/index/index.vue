@@ -8,7 +8,7 @@
       <view class="actions">
         <view class="icon" @click="openNotifications">🔔</view>
         <view class="icon" @click="openSearch">🔍</view>
-        <view class="icon theme" @click="toggleTheme">{{ themeIcon }}</view>
+        <view class="icon theme" @click="handleToggleTheme">{{ themeIcon }}</view>
       </view>
     </view>
 
@@ -45,7 +45,7 @@
           </view>
           <view class="greeting-footer">
             <view class="greeting-tag">{{ greeting.tagline }}</view>
-            <button size="mini" class="primary" @click="goCreate">新建作品</button>
+            <button size="mini" class="primary" @click="() => goCreate('home_greeting')">新建作品</button>
           </view>
         </view>
         <view v-else class="state-card">
@@ -70,19 +70,19 @@
       <view v-else-if="homeStatus === 'empty'" class="state-card">
         <UiEmpty title="首页暂无内容" description="稍后再来看最新灵感">
           <template #actions>
-            <button size="mini" type="default" @click="loadHome">刷新</button>
+            <button size="mini" type="default" @click="refreshHomeFromEmpty">刷新</button>
           </template>
         </UiEmpty>
       </view>
       <view v-else class="state-card">
-        <UiError :type="homeStatus === 'offline' ? 'offline' : 'error'" @retry="loadHome" />
+        <UiError :type="homeStatus === 'offline' ? 'offline' : 'error'" @retry="refreshHomeFromError" />
       </view>
     </view>
 
     <view class="section">
       <view class="section-head">
         <view class="section-title">精选模板</view>
-        <button size="mini" plain @click="goTemplates">全部模板</button>
+        <button size="mini" plain @click="() => goTemplates('home_section')">全部模板</button>
       </view>
       <scroll-view scroll-x show-scrollbar="false" class="carousel" enable-flex>
         <template v-if="templatesStatus === 'loading'">
@@ -99,7 +99,7 @@
             v-for="tpl in templates"
             :key="tpl.id"
             class="template-card"
-            @click="goDetail(tpl.id)"
+            @click="() => goDetail(tpl.id, 'home_carousel')"
           >
             <image
               class="cover"
@@ -128,7 +128,7 @@
     <view class="section">
       <view class="section-head">
         <view class="section-title">最近编辑</view>
-        <button size="mini" plain @click="goWorks">作品列表</button>
+        <button size="mini" plain @click="() => goWorks('home_section')">作品列表</button>
       </view>
       <template v-if="recentStatus === 'loading'">
         <view class="recent-loading">
@@ -156,18 +156,18 @@
             <view class="recent-name">{{ item.name }}</view>
             <view class="recent-meta">{{ item.updatedAt }}</view>
           </view>
-          <button size="mini" class="continue" @click="continueEdit(item)">继续编辑</button>
+          <button size="mini" class="continue" @click="() => continueEdit(item, 'home_recent')">继续编辑</button>
         </view>
       </view>
       <view v-else-if="recentStatus === 'empty'" class="state-card">
         <UiEmpty title="暂无最近编辑" description="创作作品会自动出现在这里">
           <template #actions>
-            <button size="mini" type="default" @click="goCreate">去创作</button>
+            <button size="mini" type="default" @click="() => goCreate('home_empty_recent')">去创作</button>
           </template>
         </UiEmpty>
       </view>
       <view v-else class="state-card">
-        <UiError :type="recentStatus === 'offline' ? 'offline' : 'error'" @retry="loadRecentEdits" />
+        <UiError :type="recentStatus === 'offline' ? 'offline' : 'error'" @retry="refreshRecentFromError" />
       </view>
     </view>
   </view>
@@ -181,6 +181,7 @@ import { useTheme } from '../../composables/useTheme'
 import type { HomeResponse } from '../../utils/mock-api'
 import { getHome } from '../../utils/mock-api'
 import { isOfflineError, resolveMockRequest } from '../../utils/mock-controls'
+import { AnalyticsEvents, track } from '../../utils/analytics'
 
 const RECENT_STORAGE_KEY = 'creative-calendar:recent-edits'
 
@@ -202,6 +203,11 @@ const recentStatus = ref<PageState>('loading')
 
 const { isDark, toggleTheme } = useTheme()
 const themeIcon = computed(() => (isDark.value ? '🌙' : '☀️'))
+
+function handleToggleTheme() {
+  toggleTheme()
+  track(AnalyticsEvents.HOME_TOGGLE_THEME, { theme: isDark.value ? 'dark' : 'light' })
+}
 
 const greeting = computed(() => homeData.value?.greeting ?? null)
 const today = computed(() => homeData.value?.today ?? null)
@@ -269,33 +275,55 @@ async function loadRecentEdits() {
   }
 }
 
-function goDetail(id: string) {
+function refreshRecentFromError() {
+  track(AnalyticsEvents.HOME_REFRESH, { source: `recent_${recentStatus.value}` })
+  loadRecentEdits()
+}
+
+function refreshHomeFromEmpty() {
+  track(AnalyticsEvents.HOME_REFRESH, { source: 'home_empty' })
+  loadHome()
+}
+
+function refreshHomeFromError() {
+  track(AnalyticsEvents.HOME_REFRESH, { source: homeStatus.value })
+  loadHome()
+}
+
+function goDetail(id: string, source = 'home') {
   if (!id) return
+  track(AnalyticsEvents.HOME_VIEW_TEMPLATE_DETAIL, { templateId: id, source })
   uni.navigateTo({ url: `/pages/templates/detail?id=${id}` })
 }
 
-function goTemplates() {
+function goTemplates(source = 'home') {
+  track(AnalyticsEvents.HOME_VIEW_TEMPLATES, { source })
   uni.switchTab({ url: '/pages/templates/index' })
 }
 
-function goWorks() {
+function goWorks(source = 'home') {
+  track(AnalyticsEvents.HOME_VIEW_WORKS, { source })
   uni.switchTab({ url: '/pages/works/index' })
 }
 
-function goCreate() {
+function goCreate(source = 'home') {
+  track(AnalyticsEvents.HOME_CREATE_ENTRY, { source })
   uni.navigateTo({ url: '/pages/editor/index' })
 }
 
-function continueEdit(item: RecentEdit) {
+function continueEdit(item: RecentEdit, source = 'home') {
   if (!item?.id) return
+  track(AnalyticsEvents.HOME_CONTINUE_EDIT, { projectId: item.id, source })
   uni.navigateTo({ url: `/pages/editor/index?pid=${item.id}` })
 }
 
 function openNotifications() {
+  track(AnalyticsEvents.HOME_OPEN_NOTIFICATIONS)
   uni.showToast({ title: '通知中心开发中', icon: 'none' })
 }
 
 function openSearch() {
+  track(AnalyticsEvents.HOME_OPEN_SEARCH)
   uni.switchTab({ url: '/pages/templates/index' })
 }
 
