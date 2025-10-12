@@ -1,6 +1,30 @@
 <template>
   <view class="page">
-    <view v-if="tpl" class="wrap">
+    <template v-if="status === 'loading'">
+      <view class="wrap">
+        <view class="hero-card">
+          <UiSkeleton variant="block" height="520rpx" radius="32" />
+          <view class="hero-info skeleton-stack">
+            <UiSkeleton width="70%" height="44rpx" />
+            <UiSkeleton width="60%" />
+            <UiSkeleton width="50%" height="24rpx" />
+            <UiSkeleton width="40%" height="24rpx" />
+            <view class="skeleton-actions">
+              <UiSkeleton width="100%" height="68rpx" radius="999" />
+              <UiSkeleton width="160rpx" height="60rpx" radius="999" />
+            </view>
+          </view>
+        </view>
+        <view class="section">
+          <UiSkeleton width="40%" height="32rpx" />
+          <view class="skeleton-chip-row">
+            <UiSkeleton v-for="n in 3" :key="n" width="100%" height="88rpx" radius="28" />
+          </view>
+        </view>
+      </view>
+    </template>
+
+    <view v-else-if="status === 'ready' && tpl" class="wrap">
       <view class="hero-card">
         <view class="preview" :style="{ paddingBottom: previewPadding }">
           <image class="preview-img" :src="tpl.coverUrl" mode="aspectFill" />
@@ -73,9 +97,16 @@
         </view>
       </view>
     </view>
-    <view v-else class="empty">
-      <view class="hint">未找到对应模板，返回模板库看看其他灵感吧。</view>
-      <button size="mini" @click="goTemplates">返回模板库</button>
+
+    <view v-else-if="status === 'empty'" class="state-card">
+      <UiEmpty title="未找到对应模板" description="返回模板库看看其他灵感吧。">
+        <template #actions>
+          <button size="mini" @click="goTemplates">返回模板库</button>
+        </template>
+      </UiEmpty>
+    </view>
+    <view v-else class="state-card">
+      <UiError :type="status === 'offline' ? 'offline' : 'error'" @retry="retry" />
     </view>
   </view>
 </template>
@@ -83,10 +114,14 @@
 <script setup lang="ts">
 import { onLoad } from '@dcloudio/uni-app'
 import { computed, ref, watch } from 'vue'
+import { UiEmpty, UiError, UiSkeleton } from '../../components'
 import type { TemplateDetail, TemplateSizeOption } from '../../utils/mock-api'
 import { createProjectFromTemplate, getTemplateDetail } from '../../utils/mock-api'
+import { isOfflineError } from '../../utils/mock-controls'
 
 const FAVORITE_STORAGE_KEY = 'cc.favorites.templates'
+
+type PageState = 'loading' | 'ready' | 'empty' | 'error' | 'offline'
 
 const id = ref('')
 const detail = ref<TemplateDetail | null>(null)
@@ -94,6 +129,7 @@ const tpl = computed(() => detail.value)
 const activeSizeKey = ref('')
 const isUsing = ref(false)
 const favoriteIds = ref<string[]>([])
+const status = ref<PageState>('loading')
 
 const sizeOptions = computed<TemplateSizeOption[]>(() => tpl.value?.sizes ?? [])
 const selectedSize = computed<TemplateSizeOption | null>(() => {
@@ -124,35 +160,55 @@ const isFavorite = computed(() => {
 })
 
 const highlightedTags = computed(() => {
-  if (!tpl.value?.tags?.length) return '多种日历' 
+  if (!tpl.value?.tags?.length) return '多种日历'
   return tpl.value.tags.slice(0, 3).join('、')
 })
 
 const authorName = computed(() => detail.value?.author?.name || '未知创作者')
 const authorInitial = computed(() => authorName.value.slice(0, 1).toUpperCase())
 
+async function fetchDetail(targetId: string) {
+  status.value = 'loading'
+  try {
+    const fetched = await getTemplateDetail(targetId)
+    if (!fetched) {
+      detail.value = null
+      status.value = 'empty'
+      return
+    }
+    const isFav = favoriteIds.value.includes(fetched.id)
+    detail.value = { ...fetched, isFavorite: isFav }
+    status.value = 'ready'
+  } catch (error) {
+    console.warn('Failed to load template detail', error)
+    detail.value = null
+    status.value = isOfflineError(error) ? 'offline' : 'error'
+  }
+}
+
 onLoad(async (q) => {
   loadFavorites()
   id.value = (q?.id as string) || ''
-  if (!id.value) return
-  const fetched = await getTemplateDetail(id.value)
-  if (!fetched) {
-    detail.value = null
+  if (!id.value) {
+    status.value = 'empty'
     return
   }
-  const isFav = favoriteIds.value.includes(fetched.id)
-  detail.value = { ...fetched, isFavorite: isFav }
+  await fetchDetail(id.value)
 })
 
-watch(sizeOptions, (options) => {
-  if (!options.length) {
-    activeSizeKey.value = ''
-    return
-  }
-  if (!options.some((option) => option.key === activeSizeKey.value)) {
-    activeSizeKey.value = options[0].key
-  }
-}, { immediate: true })
+watch(
+  sizeOptions,
+  (options) => {
+    if (!options.length) {
+      activeSizeKey.value = ''
+      return
+    }
+    if (!options.some((option) => option.key === activeSizeKey.value)) {
+      activeSizeKey.value = options[0].key
+    }
+  },
+  { immediate: true }
+)
 
 function resolvePreviewSize() {
   const size = selectedSize.value
@@ -205,7 +261,7 @@ function toggleFavorite() {
 }
 
 async function useThis() {
-  if (!id.value || isUsing.value) return
+  if (!id.value || isUsing.value || status.value !== 'ready') return
   isUsing.value = true
   uni.showLoading({ title: '生成中', mask: true })
   try {
@@ -227,6 +283,14 @@ function selectSize(key: string) {
 function goTemplates() {
   uni.switchTab({ url: '/pages/templates/index' })
 }
+
+function retry() {
+  if (!id.value) {
+    status.value = 'empty'
+    return
+  }
+  fetchDetail(id.value)
+}
 </script>
 
 <style scoped>
@@ -235,12 +299,45 @@ function goTemplates() {
   background: var(--color-background);
   padding: 24rpx;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
 }
 
 .wrap {
   display: flex;
   flex-direction: column;
   gap: 24rpx;
+}
+
+.state-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-card);
+  padding: 48rpx 32rpx;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.skeleton-actions {
+  display: flex;
+  gap: 16rpx;
+  align-items: center;
+}
+
+.skeleton-chip-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16rpx;
+  margin-top: 24rpx;
 }
 
 .hero-card {
@@ -400,45 +497,41 @@ function goTemplates() {
 }
 
 .section {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
   background: var(--color-surface);
   border-radius: var(--radius-xl);
   padding: 24rpx;
   box-shadow: var(--shadow-card);
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
 }
 
 .section-title {
-  font-size: var(--font-body);
+  font-size: var(--font-subtitle);
   font-weight: 600;
   color: var(--color-text);
 }
 
 .chips {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240rpx, 1fr));
   gap: 16rpx;
 }
 
 .chip {
-  width: calc(50% - 8rpx);
-  min-width: 240rpx;
+  border-radius: var(--radius-lg);
+  border: 2rpx solid transparent;
+  padding: 20rpx;
+  background: var(--color-surface-muted);
   display: flex;
   flex-direction: column;
-  gap: 4rpx;
-  padding: 16rpx 20rpx;
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-muted);
+  gap: 8rpx;
   color: var(--color-text);
-  transition: background 0.2s ease, color 0.2s ease, transform 0.2s ease;
-  box-shadow: inset 0 0 0 2rpx rgba(124, 108, 255, 0);
 }
 
 .chip.is-active {
-  background: rgba(124, 108, 255, 0.12);
-  box-shadow: inset 0 0 0 2rpx rgba(124, 108, 255, 0.5);
-  transform: translateY(-4rpx);
+  border-color: var(--color-primary);
+  background: rgba(124, 108, 255, 0.1);
 }
 
 .chip-label {
@@ -448,12 +541,11 @@ function goTemplates() {
 
 .chip-meta {
   font-size: var(--font-caption);
-  color: var(--color-text);
-  opacity: 0.8;
+  color: var(--color-text-muted);
 }
 
 .chip-hint {
-  font-size: 22rpx;
+  font-size: var(--font-caption);
   color: var(--color-text-muted);
 }
 
@@ -466,18 +558,5 @@ function goTemplates() {
   font-size: var(--font-body);
   color: var(--color-text);
   line-height: 1.6;
-}
-
-.empty {
-  padding: 48rpx 24rpx;
-  text-align: center;
-  color: var(--color-text-muted);
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-}
-
-.hint {
-  font-size: var(--font-body);
 }
 </style>

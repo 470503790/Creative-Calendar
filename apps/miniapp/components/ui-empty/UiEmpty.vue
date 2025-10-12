@@ -46,15 +46,18 @@ withDefaults(defineProps<Props>(), {
 }
 
 .ui-empty__icon {
-  width: 160rpx;
-  height: 160rpx;
+  width: 140rpx;
+  height: 140rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ui-empty__placeholder {
-  width: 100%;
-  height: 100%;
+  width: 120rpx;
+  height: 120rpx;
   border-radius: 50%;
-  background: linear-gradient(145deg, rgba(124, 108, 255, 0.22), rgba(255, 183, 77, 0.18));
+  background: linear-gradient(145deg, rgba(124, 108, 255, 0.28), rgba(56, 189, 248, 0.22));
 }
 
 .ui-empty__title {
@@ -66,7 +69,7 @@ withDefaults(defineProps<Props>(), {
 .ui-empty__description {
   font-size: var(--font-body);
   color: var(--color-text-muted);
-  line-height: 1.4;
+  line-height: 1.5;
 }
 
 .ui-empty__actions {

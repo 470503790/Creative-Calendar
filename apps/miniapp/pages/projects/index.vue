@@ -29,7 +29,7 @@
       </picker>
     </view>
 
-    <view v-if="isSelectionMode" class="bulk-bar">
+    <view v-if="isSelectionMode && status === 'ready'" class="bulk-bar">
       <view class="bulk-info">已选 {{ selectedCount }} / {{ totalCount }}</view>
       <view class="bulk-actions">
         <button size="mini" type="default" @click="selectAllVisible" :disabled="!filteredProjects.length || isAllSelected">
@@ -42,49 +42,68 @@
       </view>
     </view>
 
-    <view v-if="filteredProjects.length" class="grid">
-      <view
-        v-for="project in filteredProjects"
-        :key="project.id"
-        :class="['card', { selecting: isSelectionMode, selected: isSelected(project.id) }]"
-        @click="handleCardClick(project)"
-        @longpress="handleCardLongPress(project)"
-      >
-        <view class="cover" :style="createCoverStyle(project)">
-          <text class="cover-initial">{{ project.name.slice(0, 1) }}</text>
-        </view>
-        <view class="card-body">
-          <view class="card-title">{{ project.name }}</view>
-          <view class="card-meta">
-            <text class="meta-item">{{ project.category }}</text>
-            <text class="meta-dot">·</text>
-            <text class="meta-item">{{ project.size }}</text>
-          </view>
-          <view class="card-meta muted">更新于 {{ formatTime(project.updatedAt) }}</view>
-        </view>
-        <view v-if="project.exportCount" class="badge">
-          <text class="badge-text">导出 {{ project.exportCount }} 次</text>
-        </view>
-        <view class="more" @click.stop="openProjectActions(project)">
-          <text class="more-icon">⋯</text>
-        </view>
-        <view v-if="isSelectionMode" class="select-indicator">
-          <view class="checkbox" :class="{ active: isSelected(project.id) }">
-            <text v-if="isSelected(project.id)" class="checkmark">✓</text>
+    <template v-if="status === 'loading'">
+      <view class="grid grid--skeleton">
+        <view v-for="n in 6" :key="`project-skeleton-${n}`" class="card card--skeleton">
+          <UiSkeleton variant="block" height="240rpx" radius="24" />
+          <view class="card-body skeleton-stack">
+            <UiSkeleton width="70%" height="28rpx" />
+            <UiSkeleton width="40%" height="22rpx" />
           </view>
         </view>
       </view>
+    </template>
+    <view v-else-if="status === 'error'" class="state-card">
+      <UiError :type="errorType === 'offline' ? 'offline' : 'error'" @retry="refresh" />
     </view>
-    <view v-else class="empty">
-      <view class="empty-title">还没有作品</view>
-      <view class="empty-desc">从模板中心挑选一个，或直接开始创作吧～</view>
-      <button size="mini" type="default" @click="goCreate">去创作</button>
+    <view v-else>
+      <view v-if="filteredProjects.length" class="grid">
+        <view
+          v-for="project in filteredProjects"
+          :key="project.id"
+          :class="['card', { selecting: isSelectionMode, selected: isSelected(project.id) }]"
+          @click="handleCardClick(project)"
+          @longpress="handleCardLongPress(project)"
+        >
+          <view class="cover" :style="createCoverStyle(project)">
+            <text class="cover-initial">{{ project.name.slice(0, 1) }}</text>
+          </view>
+          <view class="card-body">
+            <view class="card-title">{{ project.name }}</view>
+            <view class="card-meta">
+              <text class="meta-item">{{ project.category }}</text>
+              <text class="meta-dot">·</text>
+              <text class="meta-item">{{ project.size }}</text>
+            </view>
+            <view class="card-meta muted">更新于 {{ formatTime(project.updatedAt) }}</view>
+          </view>
+          <view v-if="project.exportCount" class="badge">
+            <text class="badge-text">导出 {{ project.exportCount }} 次</text>
+          </view>
+          <view class="more" @click.stop="openProjectActions(project)">
+            <text class="more-icon">⋯</text>
+          </view>
+          <view v-if="isSelectionMode" class="select-indicator">
+            <view class="checkbox" :class="{ active: isSelected(project.id) }">
+              <text v-if="isSelected(project.id)" class="checkmark">✓</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view v-else class="state-card">
+        <UiEmpty title="还没有作品" description="从模板中心挑选一个，或直接开始创作吧～">
+          <template #actions>
+            <button size="mini" type="default" @click="goCreate">去创作</button>
+          </template>
+        </UiEmpty>
+      </view>
     </view>
   </view>
 </template>
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { UiEmpty, UiError, UiSkeleton } from '../../components'
 import { useProjectsStore, type ProjectItem } from '../../stores/projects'
 
 const projectsStore = useProjectsStore()
@@ -103,6 +122,9 @@ const totalCount = projectsStore.totalCount
 const selectedCount = projectsStore.selectedCount
 const isSelectionMode = projectsStore.isSelectionMode
 const isAllSelected = projectsStore.isAllSelected
+const status = projectsStore.status
+const errorType = projectsStore.errorType
+const refresh = projectsStore.refresh
 
 const sortOptions = projectsStore.sortOptions
 const sortLabels = computed(() => sortOptions.map((item) => item.label))
@@ -334,6 +356,12 @@ function formatTime(timestamp: number) {
   gap: 24rpx;
 }
 
+.grid--skeleton {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320rpx, 1fr));
+  gap: 24rpx;
+}
+
 .card {
   position: relative;
   background: #ffffff;
@@ -345,6 +373,36 @@ function formatTime(timestamp: number) {
   gap: 16rpx;
   padding-bottom: 24rpx;
   transition: transform 0.2s ease;
+}
+
+.card--skeleton {
+  padding-bottom: 24rpx;
+  gap: 16rpx;
+}
+
+.card--skeleton .card-body {
+  padding: 0 24rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.state-card {
+  background: #ffffff;
+  border-radius: var(--radius-lg, 24rpx);
+  padding: 72rpx 32rpx;
+  box-shadow: 0 16rpx 36rpx rgba(21, 21, 43, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  align-items: center;
+  text-align: center;
+}
+
+.skeleton-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
 }
 
 .card.selecting {
@@ -454,28 +512,5 @@ function formatTime(timestamp: number) {
 
 .checkmark {
   font-size: 28rpx;
-}
-
-.empty {
-  margin-top: 48rpx;
-  background: #ffffff;
-  border-radius: var(--radius-lg, 24rpx);
-  padding: 80rpx 24rpx;
-  text-align: center;
-  box-shadow: 0 16rpx 36rpx rgba(21, 21, 43, 0.08);
-  display: flex;
-  flex-direction: column;
-  gap: 16rpx;
-  color: var(--color-text-muted, #6f7383);
-}
-
-.empty-title {
-  font-size: 34rpx;
-  font-weight: 600;
-  color: var(--color-text, #20263f);
-}
-
-.empty-desc {
-  font-size: 26rpx;
 }
 </style>
