@@ -3,7 +3,12 @@
     <slot />
   </view>
 </template>
+
 <script setup lang="ts"></script>
+
 <style>
-.app{ background:#F7F7F9; min-height:100vh; }
+.app {
+  background: #f7f7f9;
+  min-height: 100vh;
+}
 </style>
