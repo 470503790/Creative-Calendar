@@ -1,0 +1,39 @@
+# === uni-app / mp-weixin ===
+# 编译产物（请勿提交）
+unpackage/
+dist/
+temp/
+
+# 微信开发者工具（私有配置）
+project.private.config.json
+
+# HBuilderX
+.hbuilderx/
+
+# miniprogram npm 构建产物（若有）
+miniprogram_npm/
+node_modules/miniprogram_npm/
+
+# === Node / 包管理 ===
+node_modules/
+# 保留各类 lockfile 以保证一致性（不要忽略）：
+# package-lock.json / yarn.lock / pnpm-lock.yaml
+
+# === 日志 ===
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# === 编辑器与系统文件 ===
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json.example
+
+# === 环境变量（如有） ===
+.env
+.env.*
