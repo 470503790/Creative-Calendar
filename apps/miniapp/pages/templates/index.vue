@@ -10,7 +10,7 @@
         />
         <view v-if="searchTerm" class="clear" @click="clearSearch">✕</view>
       </view>
-      <button v-if="showReset" class="search-reset" plain size="mini" @click="resetAll">
+      <button v-if="showReset" class="search-reset" plain size="mini" @click="() => resetAll('search_bar')">
         重置
       </button>
     </view>
@@ -67,7 +67,7 @@
       <view v-if="isEmpty" class="state-block">
         <UiEmpty title="没有找到匹配的模板" description="尝试修改筛选条件或重置搜索">
           <template #actions>
-            <button size="mini" @click="resetAll">清空条件</button>
+            <button size="mini" @click="() => resetAll('empty_state')">清空条件</button>
           </template>
         </UiEmpty>
       </view>
@@ -76,7 +76,7 @@
           v-for="item in filteredItems"
           :key="item.id"
           class="tile"
-          @click="goDetail(item.id)"
+          @click="() => goDetail(item.id, 'grid')"
         >
           <view class="cover-wrap">
             <image class="cover" :src="item.coverUrl" mode="aspectFill" />
@@ -97,8 +97,8 @@
     </view>
 
     <view class="cta">
-      <button size="mini" @click="goCreate">去创作</button>
-      <button size="mini" plain @click="goWorks">看作品</button>
+      <button size="mini" @click="() => goCreate('templates_cta_create')">去创作</button>
+      <button size="mini" plain @click="() => goWorks('templates_cta_works')">看作品</button>
     </view>
   </view>
 </template>
@@ -108,6 +108,7 @@ import { computed, onMounted } from 'vue'
 import { UiEmpty, UiError, UiSkeleton } from '../../components'
 import type { FilterKey } from '../../stores/template'
 import { useTemplateStore } from '../../stores/template'
+import { AnalyticsEvents, track } from '../../utils/analytics'
 
 const templateStore = useTemplateStore()
 
@@ -129,26 +130,53 @@ const hasFiltersApplied = computed(
 const showReset = computed(() => hasFiltersApplied.value)
 
 function doSearch() {
-  templateStore.setQuery(searchTerm.value.trim())
+  const query = searchTerm.value.trim()
+  templateStore.setQuery(query)
+  track(AnalyticsEvents.TEMPLATES_SEARCH, {
+    query,
+    resultCount: filteredItems.value.length,
+  })
 }
 
 function clearSearch() {
+  const previous = templateStore.query.value
   templateStore.clearQuery()
+  track(AnalyticsEvents.TEMPLATES_CLEAR_SEARCH, {
+    previous,
+    hasFilters: templateStore.hasActiveFilters.value,
+  })
 }
 
 function onToggle(key: FilterKey, value: string) {
   templateStore.toggleFilter(key, value)
+  const isActiveNow = templateStore.activeFilters[key].includes(value)
+  track(AnalyticsEvents.TEMPLATES_FILTER_TOGGLE, {
+    filterKey: key,
+    value,
+    isActive: isActiveNow,
+  })
 }
 
 function isActive(key: FilterKey, value: string) {
   return templateStore.activeFilters[key].includes(value)
 }
 
-function resetAll() {
+function resetAll(source = 'templates') {
   templateStore.reset()
+  track(AnalyticsEvents.TEMPLATES_RESET_FILTERS, {
+    source,
+    previousFilters: Object.entries(templateStore.activeFilters).reduce(
+      (acc, [key, values]) => ({
+        ...acc,
+        [key]: values.length,
+      }),
+      {} as Record<string, number>
+    ),
+  })
 }
 
 function retry() {
+  track(AnalyticsEvents.TEMPLATES_RETRY, { status: status.value })
   templateStore.loadTemplates(true)
 }
 
@@ -156,14 +184,17 @@ onMounted(() => {
   templateStore.loadTemplates()
 })
 
-function goDetail(id: string) {
+function goDetail(id: string, source = 'templates_grid') {
   if (!id) return
+  track(AnalyticsEvents.TEMPLATES_VIEW_DETAIL, { templateId: id, source })
   uni.navigateTo({ url: `/pages/templates/detail?id=${id}` })
 }
-function goCreate() {
+function goCreate(source = 'templates_cta') {
+  track(AnalyticsEvents.TEMPLATES_GO_CREATE, { source })
   uni.switchTab({ url: '/pages/editor/index' })
 }
-function goWorks() {
+function goWorks(source = 'templates_cta') {
+  track(AnalyticsEvents.TEMPLATES_GO_WORKS, { source })
   uni.switchTab({ url: '/pages/works/index' })
 }
 </script>

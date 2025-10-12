@@ -31,12 +31,12 @@
     <view v-else-if="status === 'empty'" class="state-card">
       <UiEmpty title="还没有作品" description="去创作第一张创意日历吧～">
         <template #actions>
-          <button type="default" size="mini" @click="goCreate">去创作</button>
+          <button type="default" size="mini" @click="() => goCreate('works_empty')">去创作</button>
         </template>
       </UiEmpty>
     </view>
     <view v-else class="state-card">
-      <UiError :type="status === 'offline' ? 'offline' : 'error'" @retry="loadWorks" />
+      <UiError :type="status === 'offline' ? 'offline' : 'error'" @retry="retryLoadWorks" />
     </view>
   </view>
 </template>
@@ -45,6 +45,7 @@
 import { onMounted, ref } from 'vue'
 import { UiEmpty, UiError, UiSkeleton } from '../../components'
 import { isOfflineError, resolveMockRequest } from '../../utils/mock-controls'
+import { AnalyticsEvents, track } from '../../utils/analytics'
 
 type PageState = 'loading' | 'ready' | 'empty' | 'error' | 'offline'
 
@@ -80,17 +81,25 @@ async function loadWorks() {
   }
 }
 
-function goCreate() {
+function goCreate(source = 'works_header') {
+  track(AnalyticsEvents.WORKS_CREATE, { source })
   uni.switchTab({ url: '/pages/editor/index' })
 }
 
-function openProject(id: string) {
+function openProject(id: string, source = 'works_list') {
   if (!id) return
+  track(AnalyticsEvents.WORKS_CONTINUE_EDIT, { projectId: id, source })
   uni.navigateTo({ url: `/pages/editor/index?pid=${id}` })
 }
 
-function preview(p: WorkItem) {
+function preview(p: WorkItem, source = 'works_list') {
+  track(AnalyticsEvents.WORKS_PREVIEW, { projectId: p.id, source })
   uni.showToast({ title: `${p.name}（预览中）`, icon: 'none' })
+}
+
+function retryLoadWorks() {
+  track(AnalyticsEvents.WORKS_RELOAD, { status: status.value })
+  loadWorks()
 }
 
 onMounted(() => {

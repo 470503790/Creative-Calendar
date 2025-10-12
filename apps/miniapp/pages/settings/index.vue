@@ -63,7 +63,7 @@
             class="item-switch"
             :checked="settings.notifications.creationReminder"
             :color="primaryColor"
-            @change="(event) => (settings.notifications.creationReminder = event.detail.value)"
+            @change="(event) => handleNotificationChange('creationReminder', event)"
           />
         </view>
         <view class="item">
@@ -75,7 +75,7 @@
             class="item-switch"
             :checked="settings.notifications.curatedDigest"
             :color="primaryColor"
-            @change="(event) => (settings.notifications.curatedDigest = event.detail.value)"
+            @change="(event) => handleNotificationChange('curatedDigest', event)"
           />
         </view>
       </view>
@@ -93,7 +93,7 @@
             class="item-switch"
             :checked="settings.labs.aiSuggestions"
             :color="primaryColor"
-            @change="(event) => (settings.labs.aiSuggestions = event.detail.value)"
+            @change="(event) => handleLabsChange('aiSuggestions', event)"
           />
         </view>
         <view class="item">
@@ -105,7 +105,7 @@
             class="item-switch"
             :checked="settings.labs.smartPalette"
             :color="primaryColor"
-            @change="(event) => (settings.labs.smartPalette = event.detail.value)"
+            @change="(event) => handleLabsChange('smartPalette', event)"
           />
         </view>
       </view>
@@ -123,7 +123,7 @@
             class="item-switch"
             :checked="settings.privacy.analytics"
             :color="primaryColor"
-            @change="(event) => (settings.privacy.analytics = event.detail.value)"
+            @change="(event) => handlePrivacyChange('analytics', event)"
           />
         </view>
         <view class="item">
@@ -135,7 +135,7 @@
             class="item-switch"
             :checked="settings.privacy.cloudBackup"
             :color="primaryColor"
-            @change="(event) => (settings.privacy.cloudBackup = event.detail.value)"
+            @change="(event) => handlePrivacyChange('cloudBackup', event)"
           />
         </view>
       </view>
@@ -186,6 +186,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue'
 import { useTheme } from '../../composables/useTheme'
+import { AnalyticsEvents, track } from '../../utils/analytics'
 
 const STORAGE_KEY = 'creative-calendar-settings'
 
@@ -361,6 +362,8 @@ const agreements = {
 
 type AgreementKey = keyof typeof agreements
 
+type SwitchChangeEvent = { detail: { value: boolean } }
+
 const activeAgreement = ref<AgreementKey | null>(null)
 
 const currentAgreement = computed(() => {
@@ -370,6 +373,7 @@ const currentAgreement = computed(() => {
 
 function openAgreement(key: AgreementKey) {
   activeAgreement.value = key
+  track(AnalyticsEvents.SETTINGS_AGREEMENT_VIEW, { agreement: key })
 }
 
 function closeAgreement() {
@@ -380,8 +384,31 @@ const { isDark, setTheme } = useTheme()
 
 const primaryColor = '#7C6CFF'
 
-function onThemeChange(event: { detail: { value: boolean } }) {
-  setTheme(event.detail.value ? 'dark' : 'light')
+function onThemeChange(event: SwitchChangeEvent) {
+  const nextTheme = event.detail.value ? 'dark' : 'light'
+  setTheme(nextTheme)
+  track(AnalyticsEvents.SETTINGS_THEME_TOGGLE, { theme: nextTheme })
+}
+
+function handleNotificationChange(
+  key: keyof SettingsState['notifications'],
+  event: SwitchChangeEvent
+) {
+  const enabled = Boolean(event.detail.value)
+  settings.notifications[key] = enabled
+  track(AnalyticsEvents.SETTINGS_NOTIFICATIONS_TOGGLE, { key, enabled })
+}
+
+function handleLabsChange(key: keyof SettingsState['labs'], event: SwitchChangeEvent) {
+  const enabled = Boolean(event.detail.value)
+  settings.labs[key] = enabled
+  track(AnalyticsEvents.SETTINGS_LABS_TOGGLE, { key, enabled })
+}
+
+function handlePrivacyChange(key: keyof SettingsState['privacy'], event: SwitchChangeEvent) {
+  const enabled = Boolean(event.detail.value)
+  settings.privacy[key] = enabled
+  track(AnalyticsEvents.SETTINGS_PRIVACY_TOGGLE, { key, enabled })
 }
 
 const languageLabel = computed(() => {
@@ -398,7 +425,13 @@ function handleSelectLanguage() {
     itemList: languageOptions.map((item) => item.label),
     success: ({ tapIndex }) => {
       const option = languageOptions[tapIndex]
-      if (option) settings.language = option.value
+      if (option) {
+        settings.language = option.value
+        track(AnalyticsEvents.SETTINGS_LANGUAGE_CHANGE, {
+          value: option.value,
+          label: option.label,
+        })
+      }
     },
   })
 }
@@ -410,23 +443,36 @@ function handleSelectDataSource() {
       const option = dataSourceOptions[tapIndex]
       if (!option) return
       if (option.disabled) {
+        track(AnalyticsEvents.SETTINGS_DATA_SOURCE_CHANGE, {
+          value: option.value,
+          label: option.label,
+          enabled: false,
+        })
         uni.showToast({ title: '即将上线，敬请期待', icon: 'none' })
         return
       }
       settings.dataSource = option.value
+      track(AnalyticsEvents.SETTINGS_DATA_SOURCE_CHANGE, {
+        value: option.value,
+        label: option.label,
+        enabled: true,
+      })
     },
   })
 }
 
 function handleManageAccount() {
+  track(AnalyticsEvents.SETTINGS_ACCOUNT_MANAGE)
   uni.showToast({ title: '账号功能开发中', icon: 'none' })
 }
 
 function handleFeedback() {
+  track(AnalyticsEvents.SETTINGS_FEEDBACK)
   uni.showToast({ title: '感谢反馈，已记录', icon: 'none' })
 }
 
 function handleShowVersion() {
+  track(AnalyticsEvents.SETTINGS_VERSION, { version })
   uni.showToast({ title: `当前版本 ${version}`, icon: 'none' })
 }
 </script>
