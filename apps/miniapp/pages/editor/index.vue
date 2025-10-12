@@ -8,6 +8,8 @@
       <view class="top-actions">
         <button plain class="ghost" @click="handleAction('saveDraft')">保存草稿</button>
         <button plain class="ghost" @click="handleAction('preview')">预览</button>
+        <button plain class="ghost" @click="openExportPanel('form')">导出</button>
+        <button plain class="ghost" @click="openExportPanel('records')">导出记录</button>
         <button class="primary" @click="handleAction('publish')">发布</button>
       </view>
     </view>
@@ -147,14 +149,21 @@
         </scroll-view>
       </view>
     </view>
+    <ExportPanel
+      :visible="exportPanelVisible"
+      :default-tab="exportPanelTab"
+      @close="closeExportPanel"
+    />
   </view>
 </template>
 
 <script setup lang="ts">
 import { onLoad } from '@dcloudio/uni-app'
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useEditorStore } from '../../stores/editor'
 import type { LeftPanelKey, RightPanelKey, ToolbarKey } from '../../stores/editor'
+import { ExportPanel } from '../../components'
+import { useExportStore } from '../../stores/export'
 
 const pid = ref('')
 
@@ -163,6 +172,7 @@ onLoad((q) => {
 })
 
 const editor = useEditorStore()
+const exportStore = useExportStore()
 
 const leftTabs = editor.leftTabs
 const rightTabs = editor.rightTabs
@@ -189,6 +199,19 @@ const canvasStyle = computed(() => {
   const scale = editor.zoom.value / 100
   return { transform: `scale(${scale.toFixed(2)})` }
 })
+
+const exportPanelVisible = ref(false)
+const exportPanelTab = ref<'form' | 'records'>('form')
+
+watch(
+  () => activePage.value,
+  (page) => {
+    if (page) {
+      exportStore.setBaseSize(page.width, page.height)
+    }
+  },
+  { immediate: true }
+)
 
 function setLeftTab(key: LeftPanelKey) {
   editor.setLeftTab(key)
@@ -271,6 +294,15 @@ function handleLayerRemove() {
     icon: 'none',
   })
 }
+
+function openExportPanel(tab: 'form' | 'records' = 'form') {
+  exportPanelTab.value = tab
+  exportPanelVisible.value = true
+}
+
+function closeExportPanel() {
+  exportPanelVisible.value = false
+}
 </script>
 
 <style lang="scss">
@@ -312,6 +344,8 @@ function handleLayerRemove() {
   display: flex;
   align-items: center;
   gap: 16rpx;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .workspace {
