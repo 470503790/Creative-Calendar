@@ -1,10 +1,11 @@
 <template>
   <view class="wrap">
     <view class="hero">
-      <image
+      <UiLazyImage
         class="avatar"
         src="https://dummyimage.com/200x200/7c6cff/ffffff&text=ME"
         mode="aspectFill"
+        :fade="true"
       />
       <view class="info">
         <view class="name">创意星球</view>
@@ -20,6 +21,8 @@
   </view>
 </template>
 <script setup lang="ts">
+import UiLazyImage from '../../components/ui-lazy-image/UiLazyImage.vue'
+
 function goWorks() {
   uni.switchTab({ url: '/pages/works/index' })
 }

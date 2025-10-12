@@ -79,7 +79,7 @@
           @click="() => goDetail(item.id, 'grid')"
         >
           <view class="cover-wrap">
-            <image class="cover" :src="item.coverUrl" mode="aspectFill" />
+            <UiLazyImage class="cover" :src="item.coverUrl" mode="aspectFill" :fade="true" />
             <view class="badges">
               <text v-if="item.isPro" class="badge badge-pro">会员</text>
               <text v-if="item.isDynamic" class="badge badge-dynamic">动态</text>
@@ -105,7 +105,10 @@
 
 <script setup lang="ts">
 import { computed, onMounted } from 'vue'
-import { UiEmpty, UiError, UiSkeleton } from '../../components'
+import UiEmpty from '../../components/ui-empty/UiEmpty.vue'
+import UiError from '../../components/ui-error/UiError.vue'
+import UiLazyImage from '../../components/ui-lazy-image/UiLazyImage.vue'
+import UiSkeleton from '../../components/ui-skeleton/UiSkeleton.vue'
 import type { FilterKey } from '../../stores/template'
 import { useTemplateStore } from '../../stores/template'
 import { AnalyticsEvents, track } from '../../utils/analytics'

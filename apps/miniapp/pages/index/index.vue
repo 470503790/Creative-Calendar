@@ -101,13 +101,7 @@
             class="template-card"
             @click="() => goDetail(tpl.id, 'home_carousel')"
           >
-            <image
-              class="cover"
-              :src="tpl.coverUrl"
-              mode="aspectFill"
-              lazy-load
-              :fade-show="false"
-            />
+            <UiLazyImage class="cover" :src="tpl.coverUrl" mode="aspectFill" :fade="true" />
             <view class="card-body">
               <view class="card-title">{{ tpl.title }}</view>
               <view class="card-meta">{{ tpl.tags.slice(0, 2).join(' · ') }}</view>
@@ -144,12 +138,12 @@
       </template>
       <view v-else-if="recentStatus === 'ready'" class="recent-list">
         <view v-for="item in recentEdits" :key="item.id" class="recent-card">
-          <image
+          <UiLazyImage
             v-if="item.coverUrl"
             class="thumb"
             :src="item.coverUrl"
             mode="aspectFill"
-            lazy-load
+            :fade="true"
           />
           <view v-else class="thumb placeholder">AI</view>
           <view class="recent-main">
@@ -176,12 +170,16 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { onShow } from '@dcloudio/uni-app'
-import { UiEmpty, UiError, UiSkeleton } from '../../components'
+import UiEmpty from '../../components/ui-empty/UiEmpty.vue'
+import UiError from '../../components/ui-error/UiError.vue'
+import UiLazyImage from '../../components/ui-lazy-image/UiLazyImage.vue'
+import UiSkeleton from '../../components/ui-skeleton/UiSkeleton.vue'
 import { useTheme } from '../../composables/useTheme'
 import type { HomeResponse } from '../../utils/mock-api'
 import { getHome } from '../../utils/mock-api'
 import { isOfflineError, resolveMockRequest } from '../../utils/mock-controls'
 import { AnalyticsEvents, track } from '../../utils/analytics'
+import { markFirstScreenReady } from '../../utils/perf'
 
 const RECENT_STORAGE_KEY = 'creative-calendar:recent-edits'
 
@@ -227,6 +225,7 @@ async function loadHome() {
     homeData.value = data
     const hasContent = Boolean(data?.greeting || data?.today || (data?.templates?.length ?? 0) > 0)
     homeStatus.value = hasContent ? 'ready' : 'empty'
+    reportHomeFirstScreen(homeStatus.value)
   } catch (error) {
     console.warn('getHome error', error)
     homeData.value = null
@@ -236,6 +235,7 @@ async function loadHome() {
       title: offline ? '网络异常，请检查后重试' : '加载失败，请稍后再试',
       icon: 'none',
     })
+    reportHomeFirstScreen(homeStatus.value)
   }
 }
 
@@ -288,6 +288,20 @@ function refreshHomeFromEmpty() {
 function refreshHomeFromError() {
   track(AnalyticsEvents.HOME_REFRESH, { source: homeStatus.value })
   loadHome()
+}
+
+function reportHomeFirstScreen(state: PageState) {
+  const metrics = markFirstScreenReady(state)
+  if (!metrics) return
+  track(AnalyticsEvents.HOME_FIRST_SCREEN_READY, {
+    state,
+    durationMs: metrics.duration,
+    timestamp: metrics.timestamp,
+    hasGreeting: Boolean(greeting.value),
+    hasToday: Boolean(today.value),
+    templateCount: templates.value.length,
+    recentState: recentStatus.value,
+  })
 }
 
 function goDetail(id: string, source = 'home') {
