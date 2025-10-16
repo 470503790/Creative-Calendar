@@ -1,0 +1,17 @@
+/* Editor theme tokens for the miniapp editor experience */
+page {
+  --editor-background: #f5f6fb;
+  --editor-surface: #ffffff;
+  --editor-surface-subtle: #f0f2ff;
+  --editor-border: rgba(124, 108, 255, 0.18);
+  --editor-primary: #7c6cff;
+  --editor-text-primary: #1f2330;
+  --editor-text-secondary: rgba(31, 35, 48, 0.6);
+  --editor-chip-bg: rgba(124, 108, 255, 0.12);
+  --editor-chip-text: #7c6cff;
+  --editor-panel-shadow: 0 -16rpx 40rpx rgba(31, 35, 48, 0.08);
+  --editor-radius-lg: 40rpx;
+  --editor-radius-md: 28rpx;
+  --editor-radius-sm: 20rpx;
+  --editor-transition: 0.24s ease;
+}
