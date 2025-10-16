@@ -55,10 +55,7 @@
         </view>
       </view>
       <scroll-view scroll-y class="tool-content">
-        <ElementsTab v-if="activeTab === 'elements'" />
-        <TextTab v-else-if="activeTab === 'text'" />
-        <ThemeTab v-else-if="activeTab === 'theme'" />
-        <ExportFull v-else />
+        <component :is="activeComponent" />
       </scroll-view>
     </view>
   </view>
@@ -98,7 +95,15 @@ const toolTabs: { key: ToolTabKey; label: string }[] = [
   { key: 'export', label: '导出' },
 ]
 
+const tabComponents: Record<ToolTabKey, any> = {
+  elements: ElementsTab,
+  text: TextTab,
+  theme: ThemeTab,
+  export: ExportFull,
+}
+
 const activeTab = ref<ToolTabKey>('elements')
+const activeComponent = computed(() => tabComponents[activeTab.value])
 
 const viewportRef = ref<HTMLElement | null>(null)
 const canvasNode = ref<any>(null)
