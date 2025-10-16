@@ -9,7 +9,7 @@ import {
   type Page,
   type Scene
 } from './scene'
-import { Renderer, type Viewport } from './renderer'
+import { Renderer, type Viewport, type AlignGuide, type DragOverlay } from './renderer'
 import { getLayerType } from './register'
 import { getRotatedBounds, rectIntersects, unionRects } from '../utils/geometry'
 
@@ -53,6 +53,7 @@ export class EditorEngine {
   constructor(scene: Scene = createEmptyScene()) {
     this.scene = scene
     this.renderer.setScene(this.scene)
+    this.renderer.setSelection([])
   }
 
   attachContext(ctx: CanvasRenderingContext2D) {
@@ -63,6 +64,9 @@ export class EditorEngine {
   setScene(scene: Scene) {
     this.scene = scene
     this.renderer.setScene(scene)
+    this.renderer.setSelection(this.getSelection())
+    this.renderer.setGuides([])
+    this.renderer.setDragOverlay(null)
     this.emitScene()
   }
 
@@ -121,7 +125,9 @@ export class EditorEngine {
   }
 
   private emitSelection() {
-    this.emit({ type: 'selection:change', selection: this.getSelection() })
+    const selection = this.getSelection()
+    this.renderer.setSelection(selection)
+    this.emit({ type: 'selection:change', selection })
   }
 
   private run(cmd: Command) {
@@ -177,14 +183,21 @@ export class EditorEngine {
     this.selectMany(hits, additive)
   }
 
-  addLayer(type: string, props: Partial<LayerBase['props']> = {}) {
+  addLayer(type: string, props: Partial<LayerBase['props']> = {}, frame?: Partial<LayerBase['frame']>) {
     const page = this.getActivePage()
     const registry = getLayerType(type) ?? { type }
+    const defaultSize = { w: 200, h: 200 }
+    const baseFrame = {
+      x: (page.width - defaultSize.w) / 2,
+      y: (page.height - defaultSize.h) / 2,
+      ...defaultSize,
+    }
+    const resolvedFrame = { ...baseFrame, ...frame }
     const layer: LayerBase = {
       id: generateLayerId(),
       type,
       name: `${registry.type ?? type} ${page.layers.length + 1}`,
-      frame: { x: 0, y: 0, w: 200, h: 200 },
+      frame: resolvedFrame,
       rotate: 0,
       hidden: false,
       locked: false,
@@ -500,6 +513,18 @@ export class EditorEngine {
     this.renderer.setViewport(viewport)
     this.emit({ type: 'viewport:change', viewport: this.renderer.getViewport() })
     this.renderer.invalidate()
+  }
+
+  setGuides(guides: AlignGuide[]) {
+    this.renderer.setGuides(guides)
+  }
+
+  clearGuides() {
+    this.renderer.setGuides([])
+  }
+
+  setDragOverlay(overlay: DragOverlay | null) {
+    this.renderer.setDragOverlay(overlay)
   }
 
   serialize(): Scene {
