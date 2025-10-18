@@ -1,13 +1,16 @@
 <template>
   <view class="elements-tab">
-    <view v-for="card in cards" :key="card.key" class="element-card">
-      <view class="element-card__header">
-        <view class="element-card__title">{{ card.title }}</view>
-        <view class="element-card__badge">{{ card.badge }}</view>
+    <CalendarProps class="calendar-panel" />
+    <view class="elements-grid">
+      <view v-for="card in cards" :key="card.key" class="element-card">
+        <view class="element-card__header">
+          <view class="element-card__title">{{ card.title }}</view>
+          <view class="element-card__badge">{{ card.badge }}</view>
+        </view>
+        <view class="element-card__description">{{ card.description }}</view>
+        <view class="element-card__meta">{{ card.meta }}</view>
+        <button class="element-card__action" @tap="handleAdd(card.kind)">添加</button>
       </view>
-      <view class="element-card__description">{{ card.description }}</view>
-      <view class="element-card__meta">{{ card.meta }}</view>
-      <button class="element-card__action" @tap="handleAdd(card.kind)">添加</button>
     </view>
   </view>
 </template>
@@ -15,6 +18,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useEditorStore, type LayerKind } from '../../../stores/editor'
+import CalendarProps from './CalendarProps.vue'
 
 interface ElementCard {
   key: string
@@ -58,12 +62,23 @@ function handleAdd(kind: LayerKind) {
   const layer = store.addLayer(kind)
   if (layer) {
     store.selectLayer(layer.id)
+    store.renderer.requestRender()
   }
 }
 </script>
 
 <style scoped lang="scss">
 .elements-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 24rpx;
+}
+
+.calendar-panel {
+  width: 100%;
+}
+
+.elements-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260rpx, 1fr));
   gap: 24rpx;
