@@ -64,8 +64,9 @@
 </template>
 
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, watch } from 'vue'
 import { useEditorStore } from '../../../stores/editor'
+import { debounce } from '../utils/timing'
 
 const store = useEditorStore()
 const textLayer = computed(() => store.activeTextLayer.value)
@@ -93,6 +94,36 @@ const form = reactive({
 
 const currentFontFamily = computed(() => fontFamilies.find((item) => item.value === form.fontFamily) ?? fontFamilies[0])
 
+const commitFontSize = debounce((size: number) => {
+  const layer = textLayer.value
+  if (!layer) return
+  store.updateLayer(layer.id, { props: { fontSize: size } })
+}, 120)
+
+const commitLetterSpacing = debounce((value: number) => {
+  const layer = textLayer.value
+  if (!layer) return
+  store.updateLayer(layer.id, { props: { letterSpacing: value } })
+}, 120)
+
+const commitLineHeight = debounce((value: number) => {
+  const layer = textLayer.value
+  if (!layer) return
+  store.updateLayer(layer.id, { props: { lineHeight: value } })
+}, 120)
+
+const commitAlign = debounce((value: CanvasTextAlign) => {
+  const layer = textLayer.value
+  if (!layer) return
+  store.updateLayer(layer.id, { props: { align: value } })
+}, 120)
+
+const commitFontFamily = debounce((value: string) => {
+  const layer = textLayer.value
+  if (!layer) return
+  store.updateLayer(layer.id, { props: { fontFamily: value } })
+}, 120)
+
 watch(
   textLayer,
   (layer) => {
@@ -110,26 +141,26 @@ function updateFontSize(size: number) {
   if (!textLayer.value) return
   const next = Math.max(12, Math.min(120, Math.round(size)))
   form.fontSize = next
-  store.updateLayer(textLayer.value.id, { props: { fontSize: next } })
+  commitFontSize(next)
 }
 
 function updateLetterSpacing(value: number) {
   if (!textLayer.value) return
   form.letterSpacing = Number(value)
-  store.updateLayer(textLayer.value.id, { props: { letterSpacing: form.letterSpacing } })
+  commitLetterSpacing(form.letterSpacing)
 }
 
 function updateLineHeight(value: number) {
   if (!textLayer.value) return
   const normalized = Number(value)
   form.lineHeight = normalized
-  store.updateLayer(textLayer.value.id, { props: { lineHeight: normalized } })
+  commitLineHeight(normalized)
 }
 
 function updateAlign(value: CanvasTextAlign) {
   if (!textLayer.value) return
   form.align = value
-  store.updateLayer(textLayer.value.id, { props: { align: value } })
+  commitAlign(value)
 }
 
 function onFontFamilyChange(event: any) {
@@ -137,8 +168,16 @@ function onFontFamilyChange(event: any) {
   const option = fontFamilies[index] ?? fontFamilies[0]
   if (!textLayer.value) return
   form.fontFamily = option.value
-  store.updateLayer(textLayer.value.id, { props: { fontFamily: option.value } })
+  commitFontFamily(option.value)
 }
+
+onBeforeUnmount(() => {
+  commitFontSize.cancel()
+  commitLetterSpacing.cancel()
+  commitLineHeight.cancel()
+  commitAlign.cancel()
+  commitFontFamily.cancel()
+})
 </script>
 
 <style scoped lang="scss">
