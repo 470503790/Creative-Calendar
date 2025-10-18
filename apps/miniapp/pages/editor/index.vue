@@ -8,25 +8,18 @@
       @action="handleTopBarAction"
     />
 
-    <view class="canvas-section">
+    <view class="canvas-section" :style="canvasStyle">
       <view class="canvas-chip">{{ monthChip }}</view>
       <view class="canvas-card">
         <view class="canvas-viewport" ref="viewportRef">
-          <view class="canvas-stage" :style="{ paddingBottom: canvasPadding }">
-            <canvas
-              id="editor-canvas"
-              class="editor-canvas"
-              type="2d"
-              disable-scroll="true"
-              @touchstart="handlePointerStart"
-              @touchmove.stop.prevent="handlePointerMove"
-              @touchend="handlePointerEnd"
-              @touchcancel="handlePointerCancel"
-              @mousedown.prevent="handlePointerStart"
-              @mousemove.prevent="handlePointerMove"
-              @mouseup.prevent="handlePointerEnd"
-              @mouseleave="handlePointerCancel"
-            ></canvas>
+          <CanvasHost
+            :padding-bottom="canvasPadding"
+            :active="pointerActive"
+            @pointer-start="handlePointerStart"
+            @pointer-move="handlePointerMove"
+            @pointer-end="handlePointerEnd"
+            @pointer-cancel="handlePointerCancel"
+          >
             <textarea
               v-if="textEditor.visible"
               ref="textareaRef"
@@ -37,12 +30,16 @@
               @blur="commitText"
               @confirm="commitText"
             />
-          </view>
+          </CanvasHost>
         </view>
       </view>
     </view>
 
-    <view class="tool-panel" :class="{ 'is-editing': textEditor.visible }">
+    <view
+      class="tool-panel"
+      :class="{ 'is-editing': textEditor.visible }"
+      :style="toolPanelStyle"
+    >
       <view class="tool-tabs">
         <view
           v-for="tab in toolTabs"
@@ -80,9 +77,12 @@ import ElementsTab from './tabs/Elements.vue'
 import TextTab from './tabs/Text.vue'
 import ThemeTab from './tabs/Theme.vue'
 import ExportFull from './sheets/ExportFull.vue'
+import CanvasHost from './components/CanvasHost.vue'
 import { useEditorStore } from '../../stores/editor'
 import type { Rect } from './core/scene'
 import type { AlignGuide } from './core/renderer'
+import { useSafeArea } from './composables/useSafeArea'
+import { debounce } from './utils/timing'
 
 type ToolTabKey = 'elements' | 'text' | 'theme' | 'export'
 type TopBarActionKey = 'undo' | 'redo' | 'preview' | 'export'
@@ -90,6 +90,11 @@ type TopBarActionKey = 'undo' | 'redo' | 'preview' | 'export'
 type PointerEventLike = TouchEvent & MouseEvent
 
 const store = useEditorStore()
+const instance = getCurrentInstance()
+
+const { calcCanvasHeight, rpx2px } = useSafeArea()
+
+const TOOLS_H_RPX = 320
 
 const toolTabs: { key: ToolTabKey; label: string }[] = [
   { key: 'elements', label: '元素' },
@@ -105,6 +110,12 @@ const canvasNode = ref<any>(null)
 const textareaRef = ref()
 const dpr = ref(1)
 const canvasPadding = computed(() => `${canvasRatio.value * 100}%`)
+const canvasHeight = ref(0)
+
+const canvasStyle = computed(() => ({
+  height: canvasHeight.value ? `${canvasHeight.value}px` : 'auto',
+}))
+const toolPanelStyle = computed(() => ({ height: `${TOOLS_H_RPX}rpx` }))
 
 const pointerState = reactive({
   layerId: '',
@@ -124,6 +135,25 @@ const textEditor = reactive({
   value: '',
   style: { left: '0px', top: '0px', width: '0px', height: '0px' },
 })
+
+const pointerActive = computed(() => !textEditor.visible)
+
+const scheduleTextUpdate = debounce((value: string) => {
+  const layer = store.activeTextLayer.value
+  if (!layer) return
+  store.updateLayer(layer.id, { props: { text: value } })
+}, 120)
+
+watch(
+  () => textEditor.value,
+  (value) => {
+    if (!textEditor.visible) return
+    const layer = store.activeTextLayer.value
+    if (!layer) return
+    if (layer.props?.text === value) return
+    scheduleTextUpdate(value)
+  }
+)
 
 const monthChip = computed(() => {
   const layer = store.activeCalendarLayer.value
@@ -373,6 +403,7 @@ function updateTextEditorPosition() {
 }
 
 function openTextEditor(layerId: string) {
+  scheduleTextUpdate.cancel()
   const page = store.activePage.value
   const layer = page?.layers.find((item) => item.id === layerId)
   if (!layer || layer.type !== 'text') return
@@ -387,6 +418,7 @@ function openTextEditor(layerId: string) {
 
 function commitText() {
   if (!textEditor.visible) return
+  scheduleTextUpdate.cancel()
   const page = store.activePage.value
   const layer = page?.layers.find((item) => item.id === textEditor.layerId)
   if (layer) {
@@ -396,13 +428,34 @@ function commitText() {
 }
 
 function closeTextEditor(resetSelection = false) {
+  scheduleTextUpdate.cancel()
   textEditor.visible = false
   textEditor.layerId = ''
   if (resetSelection) store.clearSelection()
 }
 
+async function updateCanvasLayout() {
+  await nextTick()
+  if (process.env.UNI_PLATFORM === 'h5') {
+    const topBar = document.querySelector('.page-top-bar') as HTMLElement | null
+    const topBarHeight = topBar?.getBoundingClientRect().height ?? 0
+    canvasHeight.value = calcCanvasHeight(rpx2px(TOOLS_H_RPX), topBarHeight)
+    return
+  }
+  await new Promise<void>((resolve) => {
+    uni
+      .createSelectorQuery()
+      .in(instance?.proxy)
+      .select('.page-top-bar')
+      .boundingClientRect((rect) => {
+        const topBarHeight = rect?.height ?? 0
+        canvasHeight.value = calcCanvasHeight(rpx2px(TOOLS_H_RPX), topBarHeight)
+      })
+      .exec(() => resolve())
+  })
+}
+
 function measureCanvas() {
-  const instance = getCurrentInstance()
   const system = uni.getSystemInfoSync()
   dpr.value = system.pixelRatio || 1
   if (process.env.UNI_PLATFORM === 'h5') {
@@ -462,22 +515,29 @@ function handleResize() {
   }
 }
 
+function handleWindowResize() {
+  handleResize()
+  updateCanvasLayout()
+}
+
 onMounted(() => {
   measureCanvas()
+  updateCanvasLayout()
   if (typeof uni.onWindowResize === 'function') {
-    uni.onWindowResize(handleResize)
+    uni.onWindowResize(handleWindowResize)
   } else if (process.env.UNI_PLATFORM === 'h5') {
-    window.addEventListener('resize', handleResize)
+    window.addEventListener('resize', handleWindowResize)
   }
 })
 
 onBeforeUnmount(() => {
   if (typeof uni.offWindowResize === 'function') {
-    uni.offWindowResize(handleResize)
+    uni.offWindowResize(handleWindowResize)
   } else if (process.env.UNI_PLATFORM === 'h5') {
-    window.removeEventListener('resize', handleResize)
+    window.removeEventListener('resize', handleWindowResize)
   }
   store.stopAutosave()
+  scheduleTextUpdate.cancel()
 })
 
 watch(
@@ -519,7 +579,7 @@ watch(
 }
 
 .canvas-section {
-  flex: 1;
+  flex: none;
   min-height: 0;
   padding: 32rpx 32rpx 24rpx;
   display: flex;
@@ -552,23 +612,6 @@ watch(
   height: 100%;
 }
 
-.canvas-stage {
-  position: relative;
-  width: 100%;
-  height: 0;
-  border-radius: var(--editor-radius-md);
-  background: var(--editor-surface-subtle);
-  border: 2rpx dashed var(--editor-border);
-  overflow: hidden;
-}
-
-.editor-canvas {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-}
-
 .text-editor {
   position: absolute;
   border: 2rpx solid var(--editor-primary);
@@ -577,13 +620,13 @@ watch(
   font-size: 28rpx;
   background: rgba(255, 255, 255, 0.96);
   box-shadow: 0 12rpx 24rpx rgba(31, 35, 48, 0.12);
-  z-index: 10;
+  z-index: 100;
 }
 
 .tool-panel {
   flex-shrink: 0;
-  height: 440rpx;
   padding: 0 32rpx;
+  padding-bottom: 24rpx;
   padding-bottom: calc(24rpx + env(safe-area-inset-bottom));
   background: var(--editor-surface);
   box-shadow: var(--editor-panel-shadow);
@@ -591,6 +634,8 @@ watch(
   display: flex;
   flex-direction: column;
   transition: transform 0.25s ease;
+  position: relative;
+  z-index: 10;
 }
 
 .tool-panel.is-editing {

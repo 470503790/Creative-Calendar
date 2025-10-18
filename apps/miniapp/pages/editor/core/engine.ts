@@ -58,7 +58,7 @@ export class EditorEngine {
 
   attachContext(ctx: CanvasRenderingContext2D) {
     this.renderer.attach(ctx)
-    this.renderer.invalidate()
+    this.renderer.requestRender()
   }
 
   setScene(scene: Scene) {
@@ -209,12 +209,14 @@ export class EditorEngine {
       do: () => {
         page.layers.push(layer)
         this.select(layer.id)
-        this.renderer.invalidate(getRotatedBounds(layer.frame, layer.rotate || 0))
+        const bounds = getRotatedBounds(layer.frame, layer.rotate || 0)
+        this.renderer.requestRender(bounds, layer.id, bounds)
       },
       undo: () => {
+        const bounds = getRotatedBounds(layer.frame, layer.rotate || 0)
         removeLayerById(page, layer.id)
         this.clearSelection()
-        this.renderer.invalidate()
+        this.renderer.requestRender(bounds, layer.id, null)
       },
     }
 
@@ -231,15 +233,17 @@ export class EditorEngine {
     const cmd: Command = {
       name: 'removeLayer',
       do: () => {
+        const bounds = getRotatedBounds(layer.frame, layer.rotate || 0)
         removeLayerById(page, id)
         this.selection.delete(id)
         this.emitSelection()
-        this.renderer.invalidate()
+        this.renderer.requestRender(bounds, id, null)
       },
       undo: () => {
         const insert = index >= 0 ? index : page.layers.length
         page.layers.splice(insert, 0, snapshot)
-        this.renderer.invalidate()
+        const bounds = getRotatedBounds(snapshot.frame, snapshot.rotate || 0)
+        this.renderer.requestRender(bounds, snapshot.id, bounds)
         this.pruneSelection()
       },
     }
@@ -254,20 +258,21 @@ export class EditorEngine {
     if (!layer) return false
     const before = { ...layer.frame }
     const after = { ...before, ...frame }
-    const dirty = unionRects([
-      getRotatedBounds(before, layer.rotate || 0),
-      getRotatedBounds(after, layer.rotate || 0),
-    ])
+    const beforeBounds = getRotatedBounds(before, layer.rotate || 0)
+    const afterBounds = getRotatedBounds(after, layer.rotate || 0)
+    const dirty = unionRects([beforeBounds, afterBounds])
 
     const cmd: Command = {
       name: 'updateLayerFrame',
       do: () => {
         layer.frame = after
-        if (dirty) this.renderer.invalidate(dirty)
+        if (dirty) this.renderer.requestRender(dirty, layer.id, afterBounds)
+        else this.renderer.requestRender(afterBounds, layer.id, afterBounds)
       },
       undo: () => {
         layer.frame = before
-        if (dirty) this.renderer.invalidate(dirty)
+        if (dirty) this.renderer.requestRender(dirty, layer.id, beforeBounds)
+        else this.renderer.requestRender(beforeBounds, layer.id, beforeBounds)
       },
     }
 
@@ -286,9 +291,13 @@ export class EditorEngine {
       name: 'updateLayerProps',
       do: () => {
         layer.props = after
+        const bounds = getRotatedBounds(layer.frame, layer.rotate || 0)
+        this.renderer.requestRender(bounds, layer.id, bounds)
       },
       undo: () => {
         layer.props = before
+        const bounds = getRotatedBounds(layer.frame, layer.rotate || 0)
+        this.renderer.requestRender(bounds, layer.id, bounds)
       },
     }
 
@@ -302,20 +311,21 @@ export class EditorEngine {
     if (!layer) return false
     const before = layer.rotate || 0
     const after = angle
-    const dirty = unionRects([
-      getRotatedBounds(layer.frame, before),
-      getRotatedBounds(layer.frame, after),
-    ])
+    const beforeBounds = getRotatedBounds(layer.frame, before)
+    const afterBounds = getRotatedBounds(layer.frame, after)
+    const dirty = unionRects([beforeBounds, afterBounds])
 
     const cmd: Command = {
       name: 'rotateLayer',
       do: () => {
         layer.rotate = after
-        if (dirty) this.renderer.invalidate(dirty)
+        if (dirty) this.renderer.requestRender(dirty, layer.id, afterBounds)
+        else this.renderer.requestRender(afterBounds, layer.id, afterBounds)
       },
       undo: () => {
         layer.rotate = before
-        if (dirty) this.renderer.invalidate(dirty)
+        if (dirty) this.renderer.requestRender(dirty, layer.id, beforeBounds)
+        else this.renderer.requestRender(beforeBounds, layer.id, beforeBounds)
       },
     }
 
@@ -337,12 +347,12 @@ export class EditorEngine {
       name: 'reorderLayer',
       do: () => {
         page.layers = after.slice()
-        this.renderer.invalidate()
+        this.renderer.requestRender()
         this.pruneSelection()
       },
       undo: () => {
         page.layers = before.slice()
-        this.renderer.invalidate()
+        this.renderer.requestRender()
         this.pruneSelection()
       },
     }
@@ -386,7 +396,7 @@ export class EditorEngine {
         }
         layer.frame = next
       })
-      this.renderer.invalidate(union)
+      this.renderer.requestRender(union)
     }
 
     const undo = () => {
@@ -394,7 +404,7 @@ export class EditorEngine {
         const target = findLayerById(page, snap.id)
         if (target) target.frame = snap.frame
       })
-      this.renderer.invalidate(union)
+      this.renderer.requestRender(union)
     }
 
     this.run({ name: `align:${mode}`, do: apply, undo })
@@ -421,7 +431,7 @@ export class EditorEngine {
         else layer.frame.y = first.frame.y + step * index
       })
       const union = unionRects(sorted.map((layer) => getRotatedBounds(layer.frame, layer.rotate || 0)))
-      if (union) this.renderer.invalidate(union)
+      if (union) this.renderer.requestRender(union)
     }
 
     const undo = () => {
@@ -430,7 +440,7 @@ export class EditorEngine {
         if (target) target.frame = snap.frame
       })
       const union = unionRects(sorted.map((layer) => getRotatedBounds(layer.frame, layer.rotate || 0)))
-      if (union) this.renderer.invalidate(union)
+      if (union) this.renderer.requestRender(union)
     }
 
     this.run({ name: `distribute:${axis}`, do: apply, undo })
@@ -467,11 +477,13 @@ export class EditorEngine {
       name: 'toggleVisibility',
       do: () => {
         layer.hidden = after
-        this.renderer.invalidate()
+        const bounds = getRotatedBounds(layer.frame, layer.rotate || 0)
+        this.renderer.requestRender(bounds, layer.id, bounds)
       },
       undo: () => {
         layer.hidden = before
-        this.renderer.invalidate()
+        const bounds = getRotatedBounds(layer.frame, layer.rotate || 0)
+        this.renderer.requestRender(bounds, layer.id, bounds)
       },
     })
     return true
@@ -482,7 +494,7 @@ export class EditorEngine {
     if (!done) return false
     this.emitScene()
     this.emitHistory()
-    this.renderer.invalidate()
+    this.renderer.requestRender()
     this.pruneSelection()
     return true
   }
@@ -492,7 +504,7 @@ export class EditorEngine {
     if (!done) return false
     this.emitScene()
     this.emitHistory()
-    this.renderer.invalidate()
+    this.renderer.requestRender()
     this.pruneSelection()
     return true
   }
@@ -512,7 +524,7 @@ export class EditorEngine {
   updateViewport(viewport: Partial<Viewport>) {
     this.renderer.setViewport(viewport)
     this.emit({ type: 'viewport:change', viewport: this.renderer.getViewport() })
-    this.renderer.invalidate()
+    this.renderer.requestRender()
   }
 
   setGuides(guides: AlignGuide[]) {

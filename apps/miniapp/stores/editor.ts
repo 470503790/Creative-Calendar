@@ -14,6 +14,7 @@ import {
   listThemes,
   type EditorThemeToken
 } from '../pages/editor/core/theme'
+import { resolveCalendarProps } from '../pages/editor/core/calendar'
 
 const STORAGE_KEY = 'cc_editor_scene_draft_v1'
 const AUTOSAVE_INTERVAL = 5000
@@ -112,6 +113,7 @@ function createEditorStore() {
   const isDirty = ref(false)
   const lastSavedSnapshot = ref(JSON.stringify(sceneRef.value))
   const insertionCursor = ref(0)
+  const lastError = ref<string | null>(null)
 
   function startAutosave() {
     if (autosaveState.timer) return
@@ -225,68 +227,79 @@ function createEditorStore() {
     markSaved()
   }
 
-  function addLayer(kind: LayerKind) {
-    const page = getActivePage()
-    if (!page) return null
-    const baseOffset = (insertionCursor.value++ % 5) * 18
-    let frame: Partial<LayerBase['frame']> = {}
-    let props: Record<string, any> = {}
-    switch (kind) {
-      case 'calendar': {
-        const width = page.width * 0.9
-        const height = page.height * 0.7
-        frame = {
-          x: Math.max(0, (page.width - width) / 2 + baseOffset),
-          y: Math.max(0, (page.height - height) / 2 + baseOffset),
-          w: width,
-          h: height,
+  function addLayer(kind: LayerKind, preset?: string) {
+    try {
+      const page = getActivePage()
+      if (!page) throw new Error('No active page available')
+      const offsetIndex = insertionCursor.value % 5
+      const baseOffset = offsetIndex * 18
+      let frame: Partial<LayerBase['frame']> = {}
+      let props: Record<string, any> = {}
+      switch (kind) {
+        case 'calendar': {
+          const width = page.width * 0.9
+          const height = page.height * 0.7
+          frame = {
+            x: Math.max(0, (page.width - width) / 2 + baseOffset),
+            y: Math.max(0, (page.height - height) / 2 + baseOffset),
+            w: width,
+            h: height,
+          }
+          props = resolveCalendarProps({
+            theme: createCalendarTheme(theme.value),
+          })
+          break
         }
-        props = {
-          theme: createCalendarTheme(theme.value),
+        case 'text': {
+          const width = page.width * 0.6
+          const activeProps = { fontSize: 28, lineHeight: 1.4 }
+          const height = activeProps.fontSize * activeProps.lineHeight * 2.4
+          frame = {
+            x: Math.max(0, (page.width - width) / 2 + baseOffset),
+            y: Math.max(0, page.height * 0.3 + baseOffset),
+            w: width,
+            h: height,
+          }
+          props = {
+            text: '双击编辑',
+            fontSize: 28,
+            lineHeight: 1.4,
+            align: 'center',
+            color: theme.value.primary,
+          }
+          break
         }
-        break
+        case 'shape': {
+          const width = page.width * 0.32
+          const height = width * 0.62
+          frame = {
+            x: Math.max(0, (page.width - width) / 2 + baseOffset),
+            y: Math.max(0, (page.height - height) * 0.65 + baseOffset),
+            w: width,
+            h: height,
+          }
+          props = {
+            stroke: theme.value.primary,
+            fill: theme.value.surfaceMuted,
+          }
+          break
+        }
       }
-      case 'text': {
-        const width = page.width * 0.6
-        const activeProps = { fontSize: 28, lineHeight: 1.4 }
-        const height = activeProps.fontSize * activeProps.lineHeight * 2.4
-        frame = {
-          x: Math.max(0, (page.width - width) / 2 + baseOffset),
-          y: Math.max(0, page.height * 0.3 + baseOffset),
-          w: width,
-          h: height,
-        }
-        props = {
-          text: '双击编辑',
-          fontSize: 28,
-          lineHeight: 1.4,
-          align: 'center',
-          color: theme.value.primary,
-        }
-        break
-      }
-      case 'shape': {
-        const width = page.width * 0.32
-        const height = width * 0.62
-        frame = {
-          x: Math.max(0, (page.width - width) / 2 + baseOffset),
-          y: Math.max(0, (page.height - height) * 0.65 + baseOffset),
-          w: width,
-          h: height,
-        }
-        props = {
-          stroke: theme.value.primary,
-          fill: theme.value.surfaceMuted,
-        }
-        break
-      }
-    }
-    const layer = engine.addLayer(kind, props, frame)
-    if (layer) {
+      const layer = engine.addLayer(kind, props, frame)
+      if (!layer) throw new Error('Engine returned empty layer')
+      insertionCursor.value += 1
       eventBus.emit('layer:add', cloneLayer(layer))
+      lastError.value = null
       return layer
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error)
+      lastError.value = message
+      console.error('[editor] Failed to add layer', { error, kind, preset })
+      if (typeof uni !== 'undefined' && typeof uni.showToast === 'function') {
+        uni.showToast({ icon: 'none', title: '添加失败，请重试' })
+      }
+      return null
     }
-    return null
   }
 
   function updateLayer(id: string, payload: { frame?: Partial<LayerBase['frame']>; props?: Record<string, any> }) {
@@ -385,7 +398,7 @@ function createEditorStore() {
         mutated = engine.updateLayerProps(layer.id, { theme: createCalendarTheme(theme.value) }) || mutated
       }
     })
-    if (mutated) renderer.invalidate()
+    if (mutated) renderer.requestRender()
   }
 
   watch(
@@ -399,6 +412,7 @@ function createEditorStore() {
     scene: sceneRef,
     renderer,
     eventBus,
+    lastError,
     selectedIds,
     activePage,
     activeLayer,
