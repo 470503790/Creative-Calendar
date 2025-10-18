@@ -81,7 +81,7 @@ import CanvasHost from './components/CanvasHost.vue'
 import { useEditorStore } from '../../stores/editor'
 import type { Rect } from './core/scene'
 import type { AlignGuide } from './core/renderer'
-import { useSafeArea } from './composables/useSafeArea'
+import { calcCanvasHeight } from './composables/useSafeArea'
 import { debounce } from './utils/timing'
 
 type ToolTabKey = 'elements' | 'text' | 'theme' | 'export'
@@ -92,9 +92,8 @@ type PointerEventLike = TouchEvent & MouseEvent
 const store = useEditorStore()
 const instance = getCurrentInstance()
 
-const { calcCanvasHeight, rpx2px } = useSafeArea()
-
 const TOOLS_H_RPX = 320
+const DEFAULT_TOP_BAR_PX = 112
 
 const toolTabs: { key: ToolTabKey; label: string }[] = [
   { key: 'elements', label: '元素' },
@@ -110,7 +109,7 @@ const canvasNode = ref<any>(null)
 const textareaRef = ref()
 const dpr = ref(1)
 const canvasPadding = computed(() => `${canvasRatio.value * 100}%`)
-const canvasHeight = ref(0)
+const canvasHeight = ref(calcCanvasHeight(TOOLS_H_RPX, DEFAULT_TOP_BAR_PX))
 
 const canvasStyle = computed(() => ({
   height: canvasHeight.value ? `${canvasHeight.value}px` : 'auto',
@@ -439,7 +438,7 @@ async function updateCanvasLayout() {
   if (process.env.UNI_PLATFORM === 'h5') {
     const topBar = document.querySelector('.page-top-bar') as HTMLElement | null
     const topBarHeight = topBar?.getBoundingClientRect().height ?? 0
-    canvasHeight.value = calcCanvasHeight(rpx2px(TOOLS_H_RPX), topBarHeight)
+    canvasHeight.value = calcCanvasHeight(TOOLS_H_RPX, topBarHeight)
     return
   }
   await new Promise<void>((resolve) => {
@@ -449,7 +448,7 @@ async function updateCanvasLayout() {
       .select('.page-top-bar')
       .boundingClientRect((rect) => {
         const topBarHeight = rect?.height ?? 0
-        canvasHeight.value = calcCanvasHeight(rpx2px(TOOLS_H_RPX), topBarHeight)
+        canvasHeight.value = calcCanvasHeight(TOOLS_H_RPX, topBarHeight)
       })
       .exec(() => resolve())
   })
