@@ -22,6 +22,14 @@ export type CalendarLayerProps = {
   radius: number
   padding: number
   showWeekNumber: boolean
+  showLunar: boolean
+  showSolarTerm: boolean
+  showFestivals: boolean
+  showHolidays: boolean
+  highlightToday: boolean
+  highlightWeekend: boolean
+  highlightHolidays: boolean
+  highlightExpression: string
   holidays: string[]
   theme: CalendarTheme
 }
