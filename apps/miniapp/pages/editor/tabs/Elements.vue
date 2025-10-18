@@ -60,9 +60,12 @@ const cards = computed<ElementCard[]>(() => [
 
 function handleAdd(kind: LayerKind) {
   const layer = store.addLayer(kind)
+  console.log('addLayer', layer)
   if (layer) {
     store.selectLayer(layer.id)
     store.renderer.requestRender()
+  } else if (typeof uni !== 'undefined' && typeof uni.showToast === 'function') {
+    uni.showToast({ icon: 'none', title: '添加失败' })
   }
 }
 </script>
