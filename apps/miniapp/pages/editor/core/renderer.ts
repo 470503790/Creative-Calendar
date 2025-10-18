@@ -110,18 +110,9 @@ function cloneRect(rect: Rect): Rect {
   return { x: rect.x, y: rect.y, w: rect.w, h: rect.h }
 }
 
-const globalTarget: any =
-  typeof globalThis !== 'undefined'
-    ? globalThis
-    : typeof window !== 'undefined'
-    ? window
-    : typeof global !== 'undefined'
-    ? global
-    : {}
-
-const requestFrame: (callback: FrameRequestCallback) => number =
-  typeof globalTarget.requestAnimationFrame === 'function'
-    ? globalTarget.requestAnimationFrame.bind(globalTarget)
+const rAF: (callback: FrameRequestCallback) => number =
+  typeof globalThis !== 'undefined' && typeof (globalThis as any).requestAnimationFrame === 'function'
+    ? (globalThis as any).requestAnimationFrame.bind(globalThis)
     : (callback: FrameRequestCallback) => setTimeout(() => callback(Date.now()), 16) as unknown as number
 
 function applyAlpha(color: string, alpha: number) {
@@ -144,7 +135,7 @@ export class Renderer {
   private viewport: Viewport = { scale: 1, tx: 0, ty: 0, dpr: 1 }
   private ctx: CanvasRenderingContext2D | null = null
   private dirtyRects: Rect[] = []
-  private rafId: number | null = null
+  private _pending = false
   private readonly fullRect: Rect = { x: 0, y: 0, w: 0, h: 0 }
   private lastBboxMap = new Map<string, Rect>()
   private calendarGridCache = new Map<string, CalendarGridCacheEntry>()
@@ -892,12 +883,12 @@ export class Renderer {
         this.dirtyRects.push(rect)
       }
     }
-    if (this.rafId != null) return
-    const cb = (timestamp?: number) => {
-      this.rafId = null
+    if (this._pending) return
+    this._pending = true
+    rAF((_timestamp) => {
+      this._pending = false
       this.render()
-    }
-    this.rafId = requestFrame(cb)
+    })
   }
 
   getPageBounds(): Rect {
