@@ -237,17 +237,11 @@ function createEditorStore() {
       let props: Record<string, any> = {}
       switch (kind) {
         case 'calendar': {
-          const width = page.width * 0.9
-          const height = page.height * 0.7
-          frame = {
-            x: Math.max(0, (page.width - width) / 2 + baseOffset),
-            y: Math.max(0, (page.height - height) / 2 + baseOffset),
-            w: width,
-            h: height,
-          }
           props = resolveCalendarProps({
             theme: createCalendarTheme(theme.value),
+            weekStart: 1,
           })
+          frame = { x: undefined, y: undefined, w: undefined, h: undefined }
           break
         }
         case 'text': {

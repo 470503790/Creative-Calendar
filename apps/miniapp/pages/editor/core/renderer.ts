@@ -13,7 +13,14 @@ import {
   isShapeLayer,
   isTextLayer
 } from './scene'
-import { expandRect, getRotatedBounds, rectContainsPoint, rectIntersects, screenToWorld, unionRects } from '../utils/geometry'
+import {
+  expandRect,
+  getRotatedBounds,
+  rectContainsPoint,
+  rectIntersects,
+  screenToWorld,
+  unionRects,
+} from '../utils/geometry'
 import { generateMonth, resolveCalendarProps } from './calendar'
 
 export type Viewport = { scale: number; tx: number; ty: number; dpr: number }
@@ -254,7 +261,7 @@ export class Renderer {
     ctx.fillStyle = '#ffffff'
     ctx.fillRect(0, 0, page.width, page.height)
     for (const layer of page.layers) {
-      this.drawLayer(ctx, layer as LayerBase)
+      this.drawLayer(ctx, layer as LayerBase, page)
     }
     this.drawSelection(ctx, page)
     this.drawGuides(ctx, page)
@@ -315,9 +322,15 @@ export class Renderer {
     return unionRects(rects)
   }
 
-  private drawLayer(ctx: CanvasRenderingContext2D, layer: LayerBase) {
+  private drawLayer(
+    ctx: CanvasRenderingContext2D,
+    layer: LayerBase,
+    page: Scene['project']['pages'][number]
+  ) {
     if (layer.hidden) return
-    const { x, y, w, h } = layer.frame
+    const frame = this.normalizeBox(layer, page)
+    layer.frame = frame
+    const { x, y, w, h } = frame
     ctx.save()
     ctx.translate(x + w / 2, y + h / 2)
     ctx.rotate(((layer.rotate || 0) * Math.PI) / 180)
@@ -325,8 +338,71 @@ export class Renderer {
     if (isTextLayer(layer)) this.drawTextLayer(ctx, layer)
     else if (isShapeLayer(layer)) this.drawShapeLayer(ctx, layer)
     else if (isCalendarLayer(layer)) this.drawCalendarLayer(ctx, layer)
+    else if (layer.type === 'calendar-block') this.drawCalendarGrid(ctx, w, h, layer)
     else this.drawFallbackLayer(ctx, layer)
 
+    ctx.restore()
+  }
+
+  private drawCalendarGrid(ctx: CanvasRenderingContext2D, w: number, h: number, layer: LayerBase) {
+    const background = layer.props?.background || '#ffffff'
+    const stroke = layer.props?.gridColor || 'rgba(31, 35, 48, 0.12)'
+    const textColor = layer.props?.textColor || '#1F2330'
+    const weekStart = Number.isFinite(layer.props?.weekStart)
+      ? Number(layer.props?.weekStart) % 7
+      : 1
+    const weekdayLabels = ['日', '一', '二', '三', '四', '五', '六']
+    const orderedWeekdays = weekdayLabels
+      .slice(weekStart)
+      .concat(weekdayLabels.slice(0, weekStart))
+    const headerHeight = Math.min(Math.max(h * 0.18, 48), h * 0.28)
+    const gridHeight = Math.max(0, h - headerHeight)
+    const cellWidth = w / 7
+    const cellHeight = gridHeight / 6
+
+    ctx.save()
+    ctx.fillStyle = background
+    ctx.fillRect(-w / 2, -h / 2, w, h)
+
+    // Weekday labels
+    ctx.fillStyle = textColor
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.font = `500 ${Math.max(12, Math.min(22, headerHeight * 0.35))}px 'PingFang SC'`
+    orderedWeekdays.forEach((label, index) => {
+      const centerX = -w / 2 + cellWidth * index + cellWidth / 2
+      const centerY = -h / 2 + headerHeight / 2
+      ctx.fillText(label, centerX, centerY)
+    })
+
+    // Grid lines
+    ctx.strokeStyle = stroke
+    ctx.lineWidth = Math.max(1, Math.min(2, Math.min(w, h) * 0.0025))
+    ctx.beginPath()
+    for (let row = 0; row <= 6; row++) {
+      const y = -h / 2 + headerHeight + row * cellHeight
+      ctx.moveTo(-w / 2, y)
+      ctx.lineTo(w / 2, y)
+    }
+    for (let col = 0; col <= 7; col++) {
+      const x = -w / 2 + col * cellWidth
+      ctx.moveTo(x, -h / 2 + headerHeight)
+      ctx.lineTo(x, -h / 2 + headerHeight + 6 * cellHeight)
+    }
+    ctx.stroke()
+
+    // Date placeholders
+    ctx.fillStyle = textColor
+    ctx.font = `400 ${Math.max(10, Math.min(20, cellHeight * 0.35))}px 'PingFang SC'`
+    let day = 1
+    for (let row = 0; row < 6; row++) {
+      for (let col = 0; col < 7; col++) {
+        const centerX = -w / 2 + col * cellWidth + cellWidth / 2
+        const centerY = -h / 2 + headerHeight + row * cellHeight + cellHeight / 2
+        ctx.fillText(String(day), centerX, centerY)
+        day += 1
+      }
+    }
     ctx.restore()
   }
 
@@ -855,18 +931,32 @@ export class Renderer {
     if (page.width !== safeWidth) page.width = safeWidth
     if (page.height !== safeHeight) page.height = safeHeight
     page.layers.forEach((layer) => {
-      const frame = layer.frame
-      const width = isFiniteNumber(frame.w) && frame.w > 0 ? Math.min(frame.w, safeWidth) : safeWidth
-      const height = isFiniteNumber(frame.h) && frame.h > 0 ? Math.min(frame.h, safeHeight) : safeHeight
-      const maxX = Math.max(0, safeWidth - width)
-      const maxY = Math.max(0, safeHeight - height)
-      const x = isFiniteNumber(frame.x) ? clampNumber(frame.x, 0, maxX) : 0
-      const y = isFiniteNumber(frame.y) ? clampNumber(frame.y, 0, maxY) : 0
-      if (frame.w !== width) frame.w = width
-      if (frame.h !== height) frame.h = height
-      if (frame.x !== x) frame.x = x
-      if (frame.y !== y) frame.y = y
+      const normalized = this.normalizeBox(layer, page)
+      layer.frame = normalized
     })
     this.fullRect = { x: 0, y: 0, w: page.width, h: page.height }
+  }
+
+  private normalizeBox(layer: LayerBase, page: Scene['project']['pages'][number]): Rect {
+    const frame = layer.frame ?? { x: 0, y: 0, w: 0, h: 0 }
+    const pageWidth = isFiniteNumber(page.width) && page.width > 0 ? page.width : DEFAULT_PAGE_WIDTH
+    const pageHeight = isFiniteNumber(page.height) && page.height > 0 ? page.height : DEFAULT_PAGE_HEIGHT
+    const defaultFrame = {
+      x: pageWidth * 0.05,
+      y: pageHeight * 0.06,
+      w: clampNumber(pageWidth * 0.9, 1, pageWidth),
+      h: clampNumber(pageHeight * 0.62, 1, pageHeight),
+    }
+    const widthCandidate = isFiniteNumber(frame.w) && frame.w > 0 ? frame.w : defaultFrame.w
+    const heightCandidate = isFiniteNumber(frame.h) && frame.h > 0 ? frame.h : defaultFrame.h
+    const width = clampNumber(widthCandidate, 1, pageWidth)
+    const height = clampNumber(heightCandidate, 1, pageHeight)
+    const maxX = Math.max(0, pageWidth - width)
+    const maxY = Math.max(0, pageHeight - height)
+    const rawX = isFiniteNumber(frame.x) ? frame.x : defaultFrame.x
+    const rawY = isFiniteNumber(frame.y) ? frame.y : defaultFrame.y
+    const x = clampNumber(rawX, 0, maxX)
+    const y = clampNumber(rawY, 0, maxY)
+    return { x, y, w: width, h: height }
   }
 }
