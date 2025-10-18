@@ -1,45 +1,49 @@
-interface SafeAreaInsets {
-  top: number
-  bottom: number
-  left?: number
-  right?: number
-}
-
-interface SystemInfo {
-  windowHeight: number
+interface UniSafeAreaInfo {
   windowWidth: number
-  safeAreaInsets?: SafeAreaInsets
+  windowHeight: number
+  safeTop: number
+  safeBottom: number
 }
 
-const DEFAULT_SAFE_AREA: SafeAreaInsets = { top: 0, bottom: 0 }
+const DEFAULT_SAFE_AREA: UniSafeAreaInfo = {
+  windowWidth: 0,
+  windowHeight: 0,
+  safeTop: 0,
+  safeBottom: 0,
+}
 
-function getSystemInfo(): SystemInfo {
+function getSystemSafeArea(): UniSafeAreaInfo {
   try {
-    return uni.getSystemInfoSync()
+    const info = uni.getSystemInfoSync() as {
+      windowWidth?: number
+      windowHeight?: number
+      safeAreaInsets?: { top?: number; bottom?: number }
+    }
+    const safe = info?.safeAreaInsets ?? {}
+    return {
+      windowWidth: info?.windowWidth ?? 0,
+      windowHeight: info?.windowHeight ?? 0,
+      safeTop: safe.top ?? 0,
+      safeBottom: safe.bottom ?? 0,
+    }
   } catch (error) {
-    return { windowHeight: 0, windowWidth: 0, safeAreaInsets: DEFAULT_SAFE_AREA }
+    return { ...DEFAULT_SAFE_AREA }
   }
 }
 
-export function useSafeArea() {
-  const systemInfo = getSystemInfo()
-  const safeAreaInsets = systemInfo.safeAreaInsets ?? DEFAULT_SAFE_AREA
+export function useSafeArea(): UniSafeAreaInfo {
+  return getSystemSafeArea()
+}
 
-  function rpx2px(rpx: number) {
-    return (rpx * systemInfo.windowWidth) / 750
-  }
+export function rpx2px(rpx: number) {
+  const { windowWidth } = useSafeArea()
+  const width = windowWidth || 750
+  return (rpx * width) / 750
+}
 
-  function calcCanvasHeight(toolsPx: number, topPx: number) {
-    const bottomInset = safeAreaInsets?.bottom ?? 0
-    const height = systemInfo.windowHeight - toolsPx - topPx - bottomInset
-    return height > 0 ? height : 0
-  }
-
-  return {
-    windowHeight: systemInfo.windowHeight,
-    windowWidth: systemInfo.windowWidth,
-    safeAreaInsets,
-    rpx2px,
-    calcCanvasHeight,
-  }
+export function calcCanvasHeight(toolsRpx: number, topPx: number) {
+  const { windowHeight, safeBottom } = useSafeArea()
+  const toolsPx = rpx2px(toolsRpx)
+  const height = Math.floor(windowHeight - topPx - toolsPx - safeBottom)
+  return Math.max(200, height)
 }
