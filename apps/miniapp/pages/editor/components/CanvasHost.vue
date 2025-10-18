@@ -5,7 +5,14 @@
       class="editor-canvas"
       type="2d"
       disable-scroll="true"
-      v-on="listeners"
+      @touchstart="handleTouchStart"
+      @touchmove="handleTouchMove"
+      @touchend="handleTouchEnd"
+      @touchcancel="handleTouchCancel"
+      @mousedown="handleMouseDown"
+      @mousemove="handleMouseMove"
+      @mouseup="handleMouseUp"
+      @mouseleave="handleMouseLeave"
     ></canvas>
     <slot />
   </view>
@@ -40,21 +47,14 @@ function emitPointer(type: PointerEventType, event: Event) {
   emit(type, event as PointerEventPayload)
 }
 
-const listeners = computed(() => {
-  if (!props.active) {
-    return {}
-  }
-  return {
-    touchstart: (event: Event) => emitPointer('pointer-start', event),
-    touchmove: (event: Event) => emitPointer('pointer-move', event),
-    touchend: (event: Event) => emitPointer('pointer-end', event),
-    touchcancel: (event: Event) => emitPointer('pointer-cancel', event),
-    mousedown: (event: Event) => emitPointer('pointer-start', event),
-    mousemove: (event: Event) => emitPointer('pointer-move', event),
-    mouseup: (event: Event) => emitPointer('pointer-end', event),
-    mouseleave: (event: Event) => emitPointer('pointer-cancel', event),
-  }
-})
+const handleTouchStart = (event: Event) => emitPointer('pointer-start', event)
+const handleTouchMove = (event: Event) => emitPointer('pointer-move', event)
+const handleTouchEnd = (event: Event) => emitPointer('pointer-end', event)
+const handleTouchCancel = (event: Event) => emitPointer('pointer-cancel', event)
+const handleMouseDown = (event: Event) => emitPointer('pointer-start', event)
+const handleMouseMove = (event: Event) => emitPointer('pointer-move', event)
+const handleMouseUp = (event: Event) => emitPointer('pointer-end', event)
+const handleMouseLeave = (event: Event) => emitPointer('pointer-cancel', event)
 </script>
 
 <style scoped>
