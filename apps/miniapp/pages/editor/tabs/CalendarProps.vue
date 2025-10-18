@@ -83,6 +83,7 @@
 import { computed, onBeforeUnmount, reactive, watch } from 'vue'
 import { useEditorStore } from '../../../stores/editor'
 import { debounce } from '../utils/timing'
+import { resolveCalendarProps } from '../core/calendar'
 
 const store = useEditorStore()
 const calendarLayer = computed(() => store.activeCalendarLayer.value)
@@ -105,19 +106,21 @@ const highlightToggles = [
   { key: 'highlightHolidays' as const, label: '高亮假期' },
 ]
 
+const fallbackProps = resolveCalendarProps(undefined)
+
 const form = reactive({
-  weekStart: 1,
-  showWeekNumber: false,
-  showLunar: true,
-  showSolarTerm: true,
-  showFestivals: true,
-  showHolidays: true,
-  highlightToday: true,
-  highlightWeekend: true,
-  highlightHolidays: true,
-  highlightExpression: '',
-  radius: 32,
-  padding: 40,
+  weekStart: fallbackProps.weekStart,
+  showWeekNumber: fallbackProps.showWeekNumber,
+  showLunar: fallbackProps.showLunar,
+  showSolarTerm: fallbackProps.showSolarTerm,
+  showFestivals: fallbackProps.showFestivals,
+  showHolidays: fallbackProps.showHolidays,
+  highlightToday: fallbackProps.highlightToday,
+  highlightWeekend: fallbackProps.highlightWeekend,
+  highlightHolidays: fallbackProps.highlightHolidays,
+  highlightExpression: fallbackProps.highlightExpression,
+  radius: fallbackProps.radius,
+  padding: fallbackProps.padding,
 })
 
 const currentWeekStart = computed(() => {
@@ -184,20 +187,34 @@ function onHighlightInput(event: any) {
 watch(
   calendarLayer,
   (layer) => {
-    if (!layer) return
-    const props = layer.props
-    form.weekStart = props.weekStart ?? 1
-    form.showWeekNumber = !!props.showWeekNumber
-    form.showLunar = props.showLunar !== false
-    form.showSolarTerm = props.showSolarTerm !== false
-    form.showFestivals = props.showFestivals !== false
-    form.showHolidays = props.showHolidays !== false
-    form.highlightToday = props.highlightToday !== false
-    form.highlightWeekend = props.highlightWeekend !== false
-    form.highlightHolidays = props.highlightHolidays !== false
-    form.highlightExpression = props.highlightExpression ?? ''
-    form.radius = props.radius ?? 32
-    form.padding = props.padding ?? 40
+    if (!layer) {
+      form.weekStart = fallbackProps.weekStart
+      form.showWeekNumber = fallbackProps.showWeekNumber
+      form.showLunar = fallbackProps.showLunar
+      form.showSolarTerm = fallbackProps.showSolarTerm
+      form.showFestivals = fallbackProps.showFestivals
+      form.showHolidays = fallbackProps.showHolidays
+      form.highlightToday = fallbackProps.highlightToday
+      form.highlightWeekend = fallbackProps.highlightWeekend
+      form.highlightHolidays = fallbackProps.highlightHolidays
+      form.highlightExpression = fallbackProps.highlightExpression
+      form.radius = fallbackProps.radius
+      form.padding = fallbackProps.padding
+      return
+    }
+    const props = resolveCalendarProps(layer.props)
+    form.weekStart = props.weekStart
+    form.showWeekNumber = props.showWeekNumber
+    form.showLunar = props.showLunar
+    form.showSolarTerm = props.showSolarTerm
+    form.showFestivals = props.showFestivals
+    form.showHolidays = props.showHolidays
+    form.highlightToday = props.highlightToday
+    form.highlightWeekend = props.highlightWeekend
+    form.highlightHolidays = props.highlightHolidays
+    form.highlightExpression = props.highlightExpression
+    form.radius = props.radius
+    form.padding = props.padding
   },
   { immediate: true }
 )
