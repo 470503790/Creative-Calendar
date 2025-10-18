@@ -120,20 +120,28 @@ const dateKeyFormatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Shanghai',
   year: 'numeric',
   month: '2-digit',
-  day: '2-digit'
+  day: '2-digit',
 })
 
-const lunarFormatter = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric'
-})
+let lunarFormatter: Intl.DateTimeFormat | null = null
+try {
+  lunarFormatter = new Intl.DateTimeFormat('zh-CN-u-ca-chinese', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+} catch (error) {
+  if (typeof console !== 'undefined' && typeof console.warn === 'function') {
+    console.warn('[lunar] Chinese calendar formatter unavailable, lunar data will fallback to simplified mode', error)
+  }
+  lunarFormatter = null
+}
 
 const solarFormatter = new Intl.DateTimeFormat('zh-CN', {
   timeZone: 'Asia/Shanghai',
   year: 'numeric',
   month: 'numeric',
-  day: 'numeric'
+  day: 'numeric',
 })
 
 const SOLAR_TERM_BASE = Date.UTC(1900, 0, 6, 2, 5)
@@ -183,7 +191,25 @@ function getGanzhiYear(year: number) {
   return gan + zhi
 }
 
+function fallbackLunarInfo(date: Date): LunarInfo {
+  const year = date.getFullYear()
+  const zodiacIndex = (year - 4) % 12
+  return {
+    year,
+    lunarYearName: getGanzhiYear(year),
+    zodiac: ZODIAC[(zodiacIndex + 12) % 12],
+    lunarMonth: 0,
+    lunarMonthName: '',
+    lunarDay: 0,
+    lunarDayName: '',
+    isLeapMonth: false,
+  }
+}
+
 export function getLunarInfo(date: Date): LunarInfo {
+  if (!lunarFormatter) {
+    return fallbackLunarInfo(date)
+  }
   const parts = lunarFormatter.formatToParts(date)
   const relatedYearPart = parts.find((part) => (part as Intl.DateTimeFormatPart & { type: string }).type === 'relatedYear')
   const relatedYear = parseInt(relatedYearPart?.value || String(date.getFullYear()), 10)
@@ -196,7 +222,7 @@ export function getLunarInfo(date: Date): LunarInfo {
   return {
     year: relatedYear,
     lunarYearName: getGanzhiYear(relatedYear),
-    zodiac: ZODIAC[(relatedYear - 4) % 12],
+    zodiac: ZODIAC[((relatedYear - 4) % 12 + 12) % 12],
     lunarMonth,
     lunarMonthName: monthName,
     lunarDay: dayValue,
@@ -231,7 +257,7 @@ export function getFestivals(date: Date, lunar: LunarInfo): DayFestivals {
   const lunarKey = `${lunar.lunarMonth}-${lunar.lunarDay}`
   const solarFestivals = SOLAR_FESTIVALS[solarKey] ?? []
   let lunarFestivals = LUNAR_FESTIVALS[lunarKey] ?? []
-  if (lunar.lunarMonth === 12 && lunar.lunarDay >= 29) {
+  if (lunarFormatter && lunar.lunarMonth === 12 && lunar.lunarDay >= 29) {
     const lastDay = lunarFormatter
       .formatToParts(new Date(date.getFullYear(), 0, 1))
       .find((part) => part.type === 'day')?.value
